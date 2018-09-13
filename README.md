@@ -101,7 +101,7 @@ This exports both the coverage results themselves and the associated source code
 
 ## Support
 
-If you find a bug or would like to request an enhancement, [report an issue](/issues/new). If you have a question, post it on the [InterSystems Developer Community](https://community.intersystems.com/) - consider using the "Testing" or "Continuous Integration" tags as appropriate.
+If you find a bug or would like to request an enhancement, [report an issue](https://github.com/intersystems/TestCoverage/issues/new). If you have a question, post it on the [InterSystems Developer Community](https://community.intersystems.com/) - consider using the "Testing" or "Continuous Integration" tags as appropriate.
 
 ## Contributing
 
@@ -109,13 +109,13 @@ Please read [contributing](CONTRIBUTING.md) for details on our code of conduct, 
 
 ## Versioning
 
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags).
+We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/intersystems/TestCoverage/tags).
 
 ## Authors
 
 * **Tim Leavitt** - *Initial implementation* - [timleavitt](http://github.com/timleavitt)
 
-See also the list of [contributors](/contributors) who participated in this project.
+See also the list of [contributors](https://github.com/intersystems/TestCoverage/contributors) who participated in this project.
 
 ## License
 
