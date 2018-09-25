@@ -603,7 +603,7 @@ Method OnBeforeTestSuite(dir As %String, suite As %String, testspec As %String, 
 			Set tSC = ..UpdateCoverageTargetsForTestDirectory(dir)
 			$$$ThrowOnError(tSC)
 		}
-		Set ..CurrentTestSuite = suite
+		Set ..CurrentTestSuite = $Case(suite,"":"(root)",:suite)
 		Set ..CurrentTestClass = ""
 		Set ..CurrentTestMethod = ""
 		If (..CoverageDetail = 1) {
@@ -622,7 +622,7 @@ Method OnAfterTestSuite(dir As %String, suite As %String, testspec As %String, B
 	Set tSC = $$$OK
 	Try {
 		If (..CoverageDetail = 1) {
-			Set tSC = ..EndCoverageTracking(suite)
+			Set tSC = ..EndCoverageTracking($Case(suite,"":"(root)",:suite))
 		}
 	} Catch e {
 		Set tSC = e.AsStatus()
