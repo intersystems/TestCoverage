@@ -1,3 +1,4 @@
 *.bak
 *.xml
 readme.txt
+.buildpath
