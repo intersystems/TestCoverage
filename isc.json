@@ -1,0 +1,4 @@
+{
+    "compileList": "TestCoverage*.CLS,TestCoverage.INC",
+    "projectName": "TestCoverage"
+}
