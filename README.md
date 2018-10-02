@@ -4,6 +4,17 @@ Run your typical ObjectScript %UnitTest tests and see which lines of your code a
 
 ## Getting Started
 
+Note: a minimum platform version of Caché/Ensemble 2016.2 is required.
+This tool will also work on any version of InterSystems IRIS.
+
+### Installation: of Release
+
+Download an XML file from [Releases](https://github.com/intersystems/TestCoverage/releases), then run:
+```
+Set root = "<path on filesystem to xml file>"
+Do $System.OBJ.Load(root,"ck")
+```
+
 ### Installation: from Terminal
 
 First, clone or download the repository. Then run the following commands:
