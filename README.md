@@ -11,8 +11,8 @@ This tool will also work on any version of InterSystems IRIS.
 
 Download an XML file from [Releases](https://github.com/intersystems/TestCoverage/releases), then run:
 ```
-Set root = "<path on filesystem to xml file>"
-Do $System.OBJ.Load(root,"ck")
+Set releaseFile = "<path on filesystem to xml file>"
+Do $System.OBJ.Load(releaseFile,"ck")
 ```
 
 ### Installation: from Terminal
