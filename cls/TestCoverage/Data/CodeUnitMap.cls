@@ -25,7 +25,7 @@ ClassMethod Create(pFromHash As %String, pFromLine As %Integer, pToHash As %Stri
 {
 	Set tSC = $$$OK
 	Try {
-		&sql(insert or update into TestCoverage_Data.CodeUnitMap
+		&sql(insert or update %NOLOCK %NOCHECK into TestCoverage_Data.CodeUnitMap
 			(FromHash, FromLine, ToHash, ToLine)
 			select :pFromHash, :pFromLine, :pToHash, Counter
 			from TestCoverage.Sequence(:pToLineStart,:pToLineEnd))
@@ -36,7 +36,7 @@ ClassMethod Create(pFromHash As %String, pFromLine As %Integer, pToHash As %Stri
 		// Insert/update transitive data (e.g., .INT -> .MAC (generator) -> .CLS)
 		&sql(
 			/* Lines that map to the "from" line also map to the "to" line */
-			insert or update into TestCoverage_Data.CodeUnitMap
+			insert or update %NOLOCK %NOCHECK into TestCoverage_Data.CodeUnitMap
 			(FromHash, FromLine, ToHash, ToLine)
 			select FromHash, FromLine, :pToHash, Counter
 			from TestCoverage.Sequence(:pToLineStart,:pToLineEnd),TestCoverage_Data.CodeUnitMap

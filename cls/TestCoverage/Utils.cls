@@ -134,7 +134,7 @@ ClassMethod AggregateCoverage(pTestIndex As %String) As %Status
 				Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
 			}
 			&sql(
-				insert into TestCoverage_Data.Coverage (
+				insert %NOLOCK %NOCHECK into TestCoverage_Data.Coverage (
 						Run,TestPath,Hash,Calculated,Ignore,
 						CoveredLines)
 				select :pTestIndex,:tRollupTestPath,Hash,1,0,
@@ -153,7 +153,7 @@ ClassMethod AggregateCoverage(pTestIndex As %String) As %Status
 			// Copy any other metrics captured/requested as well.
 			For i=1:1:tRun.Metrics.Count() {
 				Set tMetric = tRun.Metrics.GetAt(i)
-				Set tSQLStatement = "INSERT INTO TestCoverage_Data.""Coverage_"_tMetric_""" "_
+				Set tSQLStatement = "INSERT %NOLOCK %NOCHECK INTO TestCoverage_Data.""Coverage_"_tMetric_""" "_
 					"(Coverage,element_key,"""_tMetric_""") "_
 					"SELECT target.ID,metric.element_key,SUM(metric."""_tMetric_""") "_
 					"FROM TestCoverage_Data.Coverage source "_
@@ -178,7 +178,7 @@ ClassMethod AggregateCoverage(pTestIndex As %String) As %Status
 		
 		// Aggregate by code unit
 		&sql(
-			insert into TestCoverage_Data_Aggregate.ByCodeUnit (
+			insert %NOLOCK %NOCHECK into TestCoverage_Data_Aggregate.ByCodeUnit (
 					Run,
 					CodeUnit,
 					ExecutableLines,
@@ -246,7 +246,7 @@ ClassMethod AggregateCoverage(pTestIndex As %String) As %Status
 		
 		// Aggregate for full run
 		&sql(
-			insert into TestCoverage_Data_Aggregate.ByRun
+			insert %NOLOCK %NOCHECK into TestCoverage_Data_Aggregate.ByRun
 				(Run, ExecutableLines ,CoveredLines,
 					ExecutableMethods, CoveredMethods,
 					RtnLine, "Time", TotalTime)

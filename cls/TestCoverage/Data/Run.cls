@@ -57,7 +57,7 @@ ClassMethod MapRunCoverage(pRunIndex As %Integer) As %Status
 		
 		// Here's a worse-performing approach with some extrinsic calls that ideally wouldn't be necessary:
 		&SQL(
-			INSERT OR UPDATE INTO TestCoverage_Data.Coverage
+			INSERT OR UPDATE %NOLOCK %NOCHECK INTO TestCoverage_Data.Coverage
 				(Run,Hash,TestPath,CoveredLines,Ignore)
 			SELECT :pRunIndex,map.ToHash,%exact source.TestPath,TestCoverage.BITWISE_OR(
 				TestCoverage.LIST_TO_BIT(%DLIST(
@@ -83,7 +83,7 @@ ClassMethod MapRunCoverage(pRunIndex As %Integer) As %Status
 		// Copy any other metrics captured/requested as well.
 		For i=1:1:tRun.Metrics.Count() {
 			Set tMetric = tRun.Metrics.GetAt(i)
-			Set tSQLStatement = "INSERT OR UPDATE INTO TestCoverage_Data.""Coverage_"_tMetric_""" "_
+			Set tSQLStatement = "INSERT OR UPDATE %NOLOCK %NOCHECK INTO TestCoverage_Data.""Coverage_"_tMetric_""" "_
 				"(Coverage,element_key,"""_tMetric_""") "_
 				"SELECT target.ID,map.ToLine,NVL(oldMetric."""_tMetric_""",0) + metric."""_tMetric_""" "_
 				"FROM TestCoverage_Data.Coverage source "_
