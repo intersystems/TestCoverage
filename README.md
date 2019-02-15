@@ -96,7 +96,7 @@ Where:
 * `tTiming` (optional) is 1 to capture execution time data for monitored classes/routines as well, or 0 (the default) to not capture this data.
 
 ### Viewing Results
-After running the tests, a URL is shown in the output at which you can view test coverage results.
+After running the tests, a URL is shown in the output at which you can view test coverage results. If the hostname/IP address in this URL is incorrect, you can fix it by changing the "WebServerName" setting in the management portal, at System Administration > Configuration > Additional Settings > Startup.
 
 ### Reporting on results in Cobertura format
 The `RunTest()` method reports back a log index in the "userparam" argument. This can be used to generate a report in the same format as Cobertura, a popular Java code coverage tool. For example:
