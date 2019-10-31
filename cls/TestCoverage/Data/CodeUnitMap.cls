@@ -1,3 +1,5 @@
+/// This class maintains the mapping between .INT/.MAC/.CLS and therefore is critical for
+/// interpreting the .INT-level coverage data that the line-by-line monitor collects.
 Class TestCoverage.Data.CodeUnitMap Extends %Persistent
 {
 
@@ -23,32 +25,98 @@ ForeignKey ToCodeUnitFK(ToHash) References TestCoverage.Data.CodeUnit(Hash) [ On
 
 ClassMethod Create(pFromHash As %String, pFromLine As %Integer, pToHash As %String, pToLineStart As %Integer, pToLineEnd As %Integer) As %Status
 {
+	#def1arg DefaultStorageNode(%node) ##expression($$$comMemberKeyGet("TestCoverage.Data.CodeUnitMap", $$$cCLASSstorage, "Default", %node))
+	#def1arg CodeUnitMasterMap(%arg) $$$DefaultStorageNode($$$cSDEFdatalocation)(%arg)
+	#def1arg CodeUnitReverseMap(%arg) $$$DefaultStorageNode($$$cSDEFindexlocation)("Reverse",%arg)
+	
 	Set tSC = $$$OK
 	Try {
-		&sql(insert or update %NOLOCK %NOCHECK into TestCoverage_Data.CodeUnitMap
-			(FromHash, FromLine, ToHash, ToLine)
-			select :pFromHash, :pFromLine, :pToHash, Counter
-			from TestCoverage.Sequence(:pToLineStart,:pToLineEnd))
-		If (SQLCODE < 0) {
-			Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
+		For counter=pToLineStart:1:pToLineEnd {
+			// Uses direct global references for performance boost; this is one of the most performance-critical sections.
+			If '$Data($$$CodeUnitMasterMap(pFromHash,pFromLine,pToHash,counter)) {
+				&sql(insert %NOLOCK %NOCHECK into TestCoverage_Data.CodeUnitMap
+					(FromHash, FromLine, ToHash, ToLine)
+					select :pFromHash, :pFromLine, :pToHash, :counter)
+				If (SQLCODE < 0) {
+					Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
+				}
+			}
 		}
 
 		// Insert/update transitive data (e.g., .INT -> .MAC (generator) -> .CLS)
+		// Original implementation:
+		/*
+		// Leg 1: Lines that map to the "from" line also map to the "to" line
+		// Leg 2: The "from" line also maps to lines that the "to" line maps to
 		&sql(
-			/* Lines that map to the "from" line also map to the "to" line */
 			insert or update %NOLOCK %NOCHECK into TestCoverage_Data.CodeUnitMap
 			(FromHash, FromLine, ToHash, ToLine)
 			select FromHash, FromLine, :pToHash, Counter
 			from TestCoverage.Sequence(:pToLineStart,:pToLineEnd),TestCoverage_Data.CodeUnitMap
 				where ToHash = :pFromHash and ToLine = :pFromLine
 			union
-			/* The "from" line also maps to lines that the "to" line maps to */
 			select :pFromHash, :pFromLine, ToHash, ToLine
 			from TestCoverage.Sequence(:pToLineStart,:pToLineEnd)
 				join TestCoverage_Data.CodeUnitMap
 				on FromHash = :pToHash and FromLine = Counter)
 		If (SQLCODE < 0) {
 			Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
+		}
+		*/
+		
+		// This introduced some unacceptable performance overhead, and has been rewritten with direct global references.
+		// This reduces overall overhead of code capture for test coverage measurement by roughly 40%.
+		
+		// Leg 1: Lines that map to the "from" line also map to the "to" line
+		Set fromHash = ""
+		For {
+			Set fromHash = $Order($$$CodeUnitReverseMap(pFromHash,pFromLine,fromHash))
+			If (fromHash = "") {
+				Quit
+			}
+			Set fromLine = ""
+			For {
+				Set fromLine = $Order($$$CodeUnitReverseMap(pFromHash,pFromLine,fromHash,fromLine))
+				If (fromLine = "") {
+					Quit
+				}
+				For counter=pToLineStart:1:pToLineEnd {	
+					If '$Data($$$CodeUnitMasterMap(fromHash,fromLine,pToHash,counter)) {
+						&sql(insert %NOLOCK %NOCHECK into TestCoverage_Data.CodeUnitMap
+							(FromHash, FromLine, ToHash, ToLine)
+							select :fromHash, :fromLine, :pToHash, :counter)
+						If (SQLCODE < 0) {
+							Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
+						}
+					}
+				}
+			}
+		}
+		
+		For counter=pToLineStart:1:pToLineEnd {
+			// Leg 2: The "from" line also maps to lines that the "to" line maps to
+			Set toHash = ""
+			For {
+				Set toHash = $Order($$$CodeUnitMasterMap(pToHash,counter,toHash))
+				If (toHash = "") {
+					Quit
+				}
+				Set toLine = ""
+				For {
+					Set toLine = $Order($$$CodeUnitMasterMap(pToHash,counter,toHash,toLine))
+					If (toLine = "") {
+						Quit
+					}
+					If '$Data($$$CodeUnitMasterMap(pFromHash,pFromLine,toHash,toLine)) {
+						&sql(insert %NOLOCK %NOCHECK into TestCoverage_Data.CodeUnitMap
+							(FromHash, FromLine, ToHash, ToLine)
+							select :pFromHash, :pFromLine, :toHash, :toLine)
+						If (SQLCODE < 0) {
+							Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
+						}
+					}
+				}
+			}
 		}
 	} Catch e {
 		Set tSC = e.AsStatus()

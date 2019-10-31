@@ -52,7 +52,8 @@ Property ProcessIDs As %List [ Internal, Private ];
 
 Property Run As TestCoverage.Data.Run;
 
-/// Known coverage targets (already snapshotted)
+/// Known coverage targets (already snapshotted). <br />
+/// Value at subscript is set to 1 if there are executable lines of code in the target, 0 if not.
 Property KnownCoverageTargets [ MultiDimensional, Private ];
 
 /// Cache of (name, type) -> hash
@@ -172,23 +173,33 @@ Method StartCoverageTracking() As %Status [ Private ]
 	Try {
 		If (..CoverageTargets '= "") {
 			Set $Namespace = ..SourceNamespace
-		
+			
+			Set tRelevantTargets = ""
 			Set tNewTargets = ""
 			Set tPointer = 0
 			While $ListNext(..CoverageTargets,tPointer,tCoverageTarget) {
-				If '$Data(..KnownCoverageTargets(tCoverageTarget)) {
+				If '$Data(..KnownCoverageTargets(tCoverageTarget),tIsRelevant)#2 {
 					Set tNewTargets = tNewTargets_$ListBuild(tCoverageTarget)
+				} ElseIf tIsRelevant {
+					Set tRelevantTargets = tRelevantTargets_$ListBuild(tCoverageTarget)
 				}
 			}
 			
 			If (tNewTargets '= "") {
 				$$$StartTimer("Taking snapshot of code and CLS/MAC/INT mappings")
-				Do ##class(TestCoverage.Utils).Snapshot(tNewTargets)
+				Set tSC = ##class(TestCoverage.Utils).Snapshot(tNewTargets, .tNewRelevantTargets)
 				$$$StopTimer
+				$$$ThrowOnError(tSC)
 			
 				Set tPointer = 0
 				While $ListNext(tNewTargets,tPointer,tNewTarget) {
-					Set ..KnownCoverageTargets(tNewTarget) = ""
+					Set ..KnownCoverageTargets(tNewTarget) = 0
+				}
+				
+				Set tPointer = 0
+				While $ListNext(tNewRelevantTargets,tPointer,tRelevantTarget) {
+					Set ..KnownCoverageTargets(tRelevantTarget) = 1
+					Set tRelevantTargets = tRelevantTargets_$ListBuild(tRelevantTarget)
 				}
 			}
 			
@@ -218,7 +229,7 @@ Method StartCoverageTracking() As %Status [ Private ]
 				}
 			}
 			Set tMetrics = $ListBuild("RtnLine") _ $Select(..Timing:$ListBuild("Time","TotalTime"),1:"")
-			$$$ThrowOnError(..Monitor.StartWithScope(..CoverageTargets,tMetrics,tProcessIDs))
+			$$$ThrowOnError(..Monitor.StartWithScope(tRelevantTargets,tMetrics,tProcessIDs))
 		}
 	} Catch e { 
 		Set tSC = e.AsStatus()
@@ -282,8 +293,6 @@ Method UpdateCoverageTargetsForTestDirectory(pDirectory As %String) As %Status [
 		}
 		
 		Set tObjectCodeList = ..GetObjectCodeForSourceNames(tCoverageTargetList)
-		// Check the available memory before trying to capture coverage, so the user can remediate without waiting a really long time
-		$$$ThrowOnError(##class(TestCoverage.Utils.LineByLineMonitor).CheckAvailableMemory($ListLength(..ProcessIDs),$ListLength(tObjectCodeList)))
 		Set ..CoverageTargets = tObjectCodeList // Also restarts the monitor if it is running and updates data on covered routines/classes
 	} Catch e {
 		Set tSC = e.AsStatus()
@@ -697,19 +706,35 @@ Method PrintURL()
 {
 	Do ##super()
 	
-	Do ..PrintLine("Use the following URL to view test coverage data:")
-	Do ..PrintLine(..GetURL(..Run.%Id()))
+	Set tURL = ..GetURL(..Run.%Id())
+	If (tURL '= "") {
+		Do ..PrintLine("Use the following URL to view test coverage data:")
+		Do ..PrintLine(tURL)
+	} Else {
+		Do ..PrintLine("WARNING: No default web application found for namespace '"_$Namespace_"' - test coverage results cannot be viewed.")
+	}
 	Quit
 }
 
+/// Returns the URL to the aggregate result viewer. <br />
+/// <var>pRunID</var> is the test coverage run index.
+/// <var>pHost</var> contains the host/protocol to use.
+/// <var>pPath</var> contains the rest of the URL after that.
 ClassMethod GetURL(pRunID As %String, Output pHost As %String, Output pPath As %String) As %String
 {
-	Set tSC = ##class(%RoutineMgr).GetWebServerPort(.tPort,.tServer,.tURLPrefix)
+	Set tSC = ##class(%Library.RoutineMgr).GetWebServerPort(.tPort,.tServer,.tURLPrefix)
 	$$$ThrowOnError(tSC)
-	Set pHost = $Case(tPort,443:"https",:"http")_"://"_$Get(^%SYS("HealthShare","NetworkHostName"),tServer)
-	Set pHost = pHost _ $Case(tPort,80:"",:":"_tPort)
+	Set pHost = $ZConvert($Get(^%SYS("WebServer","Protocol"),$Select(tPort=443:"https",1:"http")),"l")
+	Set pHost = pHost_"://"_$Get(^%SYS("HealthShare","NetworkHostName"),tServer)
+	// Ports 80 and 443 are defaults for their respective protocols; in other cases, port needs to be explicit.
+	Set pHost = pHost _ $Case(tPort,80:"",443:"",:":"_tPort)
+	Set tDefaultApp = $System.CSP.GetDefaultApp($Namespace)
+	If (tDefaultApp = "") || (((tDefaultApp = "/csp/sys") || (tDefaultApp [ "/csp/sys/")) && ($Namespace '= "%SYS")) {
+		// The URL won't be valid, so just return an empty string.
+		Quit ""
+	}
 	Set pPath = $Case(tURLPrefix,"":"",:"/"_tURLPrefix)
-	Set pPath = pPath _ $$getDefaultApp^%SYS.cspServer2($Namespace)
+	Set pPath = pPath _ tDefaultApp
 	Set pPath = pPath _ "/TestCoverage.UI.AggregateResultViewer.cls?Index="_$ZConvert(pRunID,"O","URL")
 	Quit pHost_pPath
 }

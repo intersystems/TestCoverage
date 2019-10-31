@@ -12,6 +12,7 @@ Property testPath As %ZEN.Datatype.string;
 XData Contents [ XMLNamespace = "http://www.intersystems.com/zen" ]
 {
 <page xmlns="http://www.intersystems.com/zen" xmlns:tc="http://www.intersystems.com/zen/healthshare/test-coverage" title="Unit Test Coverage - Class Viewer">
+<pane paneName="CSSPane" />
 
 <vgroup width="80%" align="center">
 <hgroup align="left" enclosingClass="box" cellAlign="even">
@@ -39,11 +40,11 @@ XData Contents [ XMLNamespace = "http://www.intersystems.com/zen" ]
 </vgroup>
 </hgroup>
 
-<altJSONSQLProvider id="coverageDataProvider" maxRows="10000" queryClass="TestCoverage.UI.Utils" queryName="ColoredText">
+<tc:altJSONSQLProvider id="coverageDataProvider" maxRows="10000" queryClass="TestCoverage.UI.Utils" queryName="ColoredText">
 <parameter paramName="1" value="#(%page.testIndex)#" />
 <parameter paramName="2" value="#(%page.codeUnit)#" />
 <parameter paramName="3" value="#(%page.testPath)#" />
-</altJSONSQLProvider>
+</tc:altJSONSQLProvider>
 
 <html id="coverageResults" align="left">
 </html>
@@ -74,8 +75,7 @@ ClientMethod showCodeCoverage() [ Language = javascript ]
 {
 	zenPage.codeUnit = zen('codeCovered').getValue();
 	zen('coverageDataProvider').reloadContentsAsynch(function() {
-		var code = zen('coverageDataProvider').getContentObject().children;
-		document.getElementById('coverageResults').innerHTML = zenPage.buildCodeHTML(code);
+		zenPage.renderCodeCoverage('coverageDataProvider','coverageResults');
 	});
 }
 

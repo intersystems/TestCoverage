@@ -74,9 +74,11 @@ ClassMethod GetTestCoverageTableList() As %List
 	Quit tList
 }
 
-/// Given <var>pIntRoutines</var>, a $ListBuild list of .INT routine names, creates snapshots of the current state of the code of each.
-/// This is parallelized using <class>%SYSTEM.WorkMgr</class> for better performance.
-ClassMethod Snapshot(pIntRoutines As %List) As %Status
+/// Given <var>pIntRoutines</var>, a $ListBuild list of .INT routine names, creates snapshots of the current state of the code of each. <br />
+/// This is parallelized using <class>%SYSTEM.WorkMgr</class> for better performance. <br />
+/// <var>pRelevantRoutines</var> is a $ListBuild list of .INT routines that map back to a .CLS or .MAC
+/// routine with at least one executable line.
+ClassMethod Snapshot(pIntRoutines As %List, Output pRelevantRoutines As %List = "") As %Status
 {
 	Set tSC = $$$OK
 	Try {
@@ -92,6 +94,27 @@ ClassMethod Snapshot(pIntRoutines As %List) As %Status
 		
 		Set tSC = tSnapshotQueue.WaitForComplete()
 		$$$ThrowOnError(tSC)
+		
+		// See which routines are actually relevant (one or more lines mapping back to a class with 1 or more executable lines)
+		// There's no point in optimizing out .MAC routines; they'll always have code
+		Set tPointer = 0
+		While $ListNext(pIntRoutines,tPointer,tIntRoutine) {
+			Set tOther = ##class(%Library.RoutineMgr).GetOther(tIntRoutine,"INT",-1)
+			If (tOther '= "") && ($Piece(tOther,".",*) = "CLS") {
+				// With the code already cached, this will be faster.
+				#dim tCodeUnit As TestCoverage.Data.CodeUnit
+				Set tSC = ##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tOther,,.tCodeUnit)
+				If $$$ISERR(tSC) {
+					Continue // Non-fatal. Just skip it.
+				}
+				If '$BitCount(tCodeUnit.ExecutableLines,1) {
+					// Skip it - no executable lines.
+					Continue
+				}
+			}
+			Set pRelevantRoutines = pRelevantRoutines _ $ListBuild(tIntRoutine)
+		}
+		Write !
 	} Catch e {
 		Set tSC = e.AsStatus()
 	}
