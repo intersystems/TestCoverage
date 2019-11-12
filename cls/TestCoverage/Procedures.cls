@@ -1,3 +1,4 @@
+/// Contains several helpful stored procedures for use in SQL.
 Class TestCoverage.Procedures
 {
 
@@ -84,33 +85,6 @@ ClassMethod ListToBit(pSource As %List) As %Binary [ SqlName = LIST_TO_BIT, SqlP
 		Set $Bit(tResult,tBitPosition) = 1
 	}
 	Quit tResult
-}
-
-/// Table-valued function returning a sequence of integers (column name "Counter") going from <var>pStart</var> to <var>pEnd</var> by <var>pIncrement</var>.
-Query Sequence(pStart As %Integer, pEnd As %Integer, pIncrement As %Integer = 1) As %Query(ROWSPEC = "Counter:%Integer") [ SqlName = SEQUENCE, SqlProc ]
-{
-}
-
-ClassMethod SequenceExecute(ByRef qHandle As %Binary, pStart As %Integer, pEnd As %Integer, pIncrement As %Integer = 1) As %Status
-{
-	Set qHandle = pStart
-	Set qHandle("inc") = pIncrement
-	Set qHandle("end") = pEnd
-	Quit $$$OK
-}
-
-ClassMethod SequenceClose(ByRef qHandle As %Binary) As %Status [ PlaceAfter = SequenceExecute ]
-{
-	Quit $$$OK
-}
-
-ClassMethod SequenceFetch(ByRef qHandle As %Binary, ByRef Row As %List, ByRef AtEnd As %Integer = 0) As %Status [ PlaceAfter = SequenceExecute ]
-{
-	Set Row = $ListBuild(qHandle)
-	If ($Increment(qHandle,qHandle("inc")) > qHandle("end")) {
-		Set AtEnd = 1
-	}
-	Quit $$$OK
 }
 
 }

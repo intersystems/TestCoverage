@@ -70,14 +70,14 @@ pre.coverage {
 	max-height: 75vh;
 	overflow-x: auto;
 }
-pre.coverage span {
+pre.coverage > span {
 	white-space: pre;
 	tab-size: 4;
 	display: block;
 	line-height: 1.5em;
 	width: 100%;
 }
-pre.coverage span:before {
+pre.coverage > span:before {
 	counter-increment: line;
 	content: counter(line);
 	display: inline-block;
@@ -89,15 +89,15 @@ pre.coverage span:before {
 }
 
 /* Classes for display of code coverage */
-pre.coverage span.executable:before {
+pre.coverage > span.executable:before {
 	background-color: #f66;
 }
 
-pre.coverage span.covered:before {
+pre.coverage > span.covered:before {
 	background-color: #6f6;
 }
 
-pre.coverage span.hide:before {
+pre.coverage > span.hide:before {
 	background-color: #fff;
 }
 

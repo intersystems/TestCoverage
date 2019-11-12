@@ -3,6 +3,13 @@ Class TestCoverage.UI.Template Extends %ZEN.Component.page [ Abstract ]
 
 Parameter APPLICATION As CLASSNAME = "TestCoverage.UI.Application";
 
+XData CSSPane [ XMLNamespace = "http://www.intersystems.com/zen" ]
+{
+<pane xmlns="http://www.intersystems.com/zen">
+<codeCSS xmlns="http://www.intersystems.com/zen/healthshare/test-coverage" />
+</pane>
+}
+
 XData TogglePane [ XMLNamespace = "http://www.intersystems.com/zen" ]
 {
 <pane xmlns="http://www.intersystems.com/zen">
@@ -15,8 +22,12 @@ ClientMethod toggleCovered(pVisible) [ Language = javascript ]
 	$("pre.coverage span.covered").toggleClass("hide",!pVisible);
 }
 
-ClientMethod buildCodeHTML(codeLines) [ Language = javascript ]
+ClientMethod buildCodeHTML(targetElement, codeLines) [ Language = javascript ]
 {
+	// Remove all children from the target to make the subsequent set of innerHTML faster.
+	while (targetElement.firstChild) {
+	    targetElement.removeChild(targetElement.firstChild);
+	}
 	var html = new Array();
 	var showCovered = zen('markCovered').getValue()
 	html.push('<pre class="coverage">\r\n');
@@ -31,7 +42,13 @@ ClientMethod buildCodeHTML(codeLines) [ Language = javascript ]
 		html.push(line);
 	}
 	html.push('</pre>');
-	return html.join('');
+	targetElement.innerHTML = html.join('');
+}
+
+ClientMethod renderCodeCoverage(providerID, htmlID) [ Language = javascript ]
+{
+	var code = zen(providerID).getContentObject().children;
+	zenPage.buildCodeHTML(document.getElementById(htmlID),code);
 }
 
 }

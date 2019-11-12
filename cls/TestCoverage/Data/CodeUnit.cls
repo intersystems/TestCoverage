@@ -32,7 +32,7 @@ Property MethodMap As array Of %Integer;
 
 /// For classes, map of line numbers in code to associated method names
 /// For routines, map of labels to associated line numbers
-Property LineToMethodMap As array Of %String [ Private ];
+Property LineToMethodMap As array Of %Dictionary.CacheIdentifier [ Private ];
 
 /// Set to true if this class/routine is generated
 Property Generated As %Boolean [ InitialExpression = 0 ];
@@ -160,8 +160,13 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 			}
 		}
 		
-		$$$ThrowOnError(pCodeUnit.%Save())
-		
+		Set tSC = pCodeUnit.%Save()
+		If $$$ISERR(tSC) && $System.Status.Equals(tSC,$$$ERRORCODE($$$IDKeyNotUnique)) {
+			// Some other process beat us to it.
+			Set tSC = $$$OK
+			Set pCodeUnit = ..%OpenId(pCodeUnit.Hash,,.tSC)
+			Quit
+		}
 		// For non-class (e.g., .MAC/.INT) code, it's possible that something else generated it,
 		// so update the mappings between generated and the thing that generated it.
 		If (tType '= "CLS") {
