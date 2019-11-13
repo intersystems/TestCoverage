@@ -176,11 +176,15 @@ ClassMethod AggregateCoverage(pTestIndex As %String) As %Status
 			// Copy any other metrics captured/requested as well.
 			For i=1:1:tRun.Metrics.Count() {
 				Set tMetric = tRun.Metrics.GetAt(i)
-				Set tSQLStatement = "INSERT %NOLOCK %NOCHECK INTO TestCoverage_Data.""Coverage_"_tMetric_""" "_
-					"(Coverage,element_key,"""_tMetric_""") "_
-					"SELECT target.ID,metric.element_key,SUM(metric."""_tMetric_""") "_
+				If $System.SQL.IsReservedWord(tMetric) {
+					// e.g., "Time" -> "_Time"
+					Set tMetric = "_"_tMetric
+				}
+				Set tSQLStatement = "INSERT %NOLOCK %NOCHECK INTO TestCoverage_Data.Coverage_"_tMetric_" "_
+					"(Coverage,element_key,"_tMetric_") "_
+					"SELECT target.ID,metric.element_key,SUM(metric."_tMetric_") "_
 					"FROM TestCoverage_Data.Coverage source "_
-					"JOIN TestCoverage_Data.""Coverage_"_tMetric_""" metric "_
+					"JOIN TestCoverage_Data.Coverage_"_tMetric_" metric "_
 					"	ON metric.Coverage = source.ID "_
 					"JOIN TestCoverage_Data.Coverage target "_
 					"	ON target.Hash = source.Hash "_
@@ -209,7 +213,7 @@ ClassMethod AggregateCoverage(pTestIndex As %String) As %Status
 					ExecutableMethods,
 					CoveredMethods,
 					RtnLine,
-					"Time",
+					_Time,
 					TotalTime)
 			select :pTestIndex,
 					CodeUnit,
@@ -237,7 +241,7 @@ ClassMethod AggregateCoverage(pTestIndex As %String) As %Status
 						where method.Parent = CodeUnit),0) CoveredMethods,
 						
 					-- Other metrics
-					RtnLine, "Time", TotalTime
+					RtnLine, _Time, TotalTime
 			from (
 				select Hash CodeUnit,
 					Hash->ExecutableLines ExecutableLines,
@@ -245,9 +249,9 @@ ClassMethod AggregateCoverage(pTestIndex As %String) As %Status
 					(select SUM(RtnLine)
 						from TestCoverage_Data.Coverage_RtnLine r
 						where r.Coverage = coverage.ID) RtnLine,
-					(select SUM("Time")
-						from TestCoverage_Data.Coverage_Time t
-						where t.Coverage = coverage.ID) "Time",
+					(select SUM(_Time)
+						from TestCoverage_Data.Coverage__Time t
+						where t.Coverage = coverage.ID) _Time,
 					(select SUM(TotalTime)
 						from TestCoverage_Data.Coverage_TotalTime tt
 						where tt.Coverage = coverage.ID) TotalTime
@@ -272,10 +276,10 @@ ClassMethod AggregateCoverage(pTestIndex As %String) As %Status
 			insert %NOLOCK %NOCHECK into TestCoverage_Data_Aggregate.ByRun
 				(Run, ExecutableLines ,CoveredLines,
 					ExecutableMethods, CoveredMethods,
-					RtnLine, "Time", TotalTime)
+					RtnLine, _Time, TotalTime)
 			select Run, SUM(ExecutableLines), SUM(CoveredLines),
 				SUM(ExecutableMethods), SUM(CoveredMethods),
-				SUM(RtnLine), SUM("Time"), SUM(TotalTime)
+				SUM(RtnLine), SUM(_Time), SUM(TotalTime)
 			from TestCoverage_Data_Aggregate.ByCodeUnit
 			where Run = :pTestIndex
 			group by Run

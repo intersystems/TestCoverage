@@ -83,20 +83,24 @@ ClassMethod MapRunCoverage(pRunIndex As %Integer) As %Status
 		// Copy any other metrics captured/requested as well.
 		For i=1:1:tRun.Metrics.Count() {
 			Set tMetric = tRun.Metrics.GetAt(i)
-			Set tSQLStatement = "INSERT OR UPDATE %NOLOCK %NOCHECK INTO TestCoverage_Data.""Coverage_"_tMetric_""" "_
-				"(Coverage,element_key,"""_tMetric_""") "_
-				"SELECT target.ID,map.ToLine,NVL(oldMetric."""_tMetric_""",0) + SUM(metric."""_tMetric_""") "_
+			If $System.SQL.IsReservedWord(tMetric) {
+				// e.g., "Time" -> "_Time"
+				Set tMetric = "_"_tMetric
+			}
+			Set tSQLStatement = "INSERT OR UPDATE %NOLOCK %NOCHECK INTO TestCoverage_Data.Coverage_"_tMetric_" "_
+				"(Coverage,element_key,"_tMetric_") "_
+				"SELECT target.ID,map.ToLine,NVL(oldMetric."_tMetric_",0) + SUM(metric."_tMetric_") "_
 				"FROM TestCoverage_Data.Coverage source "_
 				"JOIN TestCoverage_Data.CodeUnitMap map "_
 				"	ON source.Hash = map.FromHash "_
-				"JOIN TestCoverage_Data.""Coverage_"_tMetric_""" metric "_
+				"JOIN TestCoverage_Data.Coverage_"_tMetric_" metric "_
 				"	ON metric.Coverage = source.ID "_
 				"	AND metric.element_key = map.FromLine "_
 				"JOIN TestCoverage_Data.Coverage target "_
 				"	ON target.Run = source.Run "_
 				"	AND target.Hash = map.ToHash "_
 				"	AND target.TestPath = source.TestPath "_
-				"LEFT JOIN TestCoverage_Data.""Coverage_"_tMetric_""" oldMetric "_
+				"LEFT JOIN TestCoverage_Data.Coverage_"_tMetric_" oldMetric "_
 				"	ON oldMetric.ID = target.ID "_
 				"	AND oldMetric.element_key = map.ToLine "_
 				"WHERE source.Run = ? "_

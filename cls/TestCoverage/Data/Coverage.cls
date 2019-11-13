@@ -45,7 +45,7 @@ Property CoveredLines As TestCoverage.DataType.Bitstring;
 Property RtnLine As array Of %Integer;
 
 /// List of "Time" measurements from line-by-line monitor, subscripted by line number
-Property Time As array Of TestCoverage.DataType.Timing;
+Property Time As array Of TestCoverage.DataType.Timing [ SqlFieldName = _TIME ];
 
 /// List of "TotalTime" measurements from line-by-line monitor, subscripted by line number
 Property TotalTime As array Of TestCoverage.DataType.Timing;

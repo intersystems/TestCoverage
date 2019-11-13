@@ -11,7 +11,7 @@ Property CoveredMethods As %Integer [ Required ];
 
 Property RtnLine As %Integer [ InitialExpression = 0 ];
 
-Property Time As TestCoverage.DataType.Timing [ InitialExpression = 0 ];
+Property Time As TestCoverage.DataType.Timing [ InitialExpression = 0, SqlFieldName = _TIME ];
 
 Property TotalTime As TestCoverage.DataType.Timing [ InitialExpression = 0 ];
 
