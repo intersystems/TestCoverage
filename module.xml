@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25">
+<Document name="TestCoverage.ZPM"><Module>
+  <Name>TestCoverage</Name>
+  <Version>2.0.0+snapshot</Version>
+  <Packaging>module</Packaging>
+  <Resources>
+    <Resource Name="TestCoverage.PKG">
+    </Resource>
+    <Resource Name="TestCoverage.DataType.PKG" Deploy="false">
+    </Resource>
+    <Resource Name="TestCoverage.Utils.LineByLineMonitor.CLS" Deploy="true">
+    </Resource>
+    <Resource Name="TestCoverage.INC">
+    </Resource>
+    <Resource Name="/internal/testing/unit_tests/" ProcessorClass="UnitTest">
+      <Attribute Name="Package">UnitTest.TestCoverage.Unit</Attribute>
+      <Attribute Name="Phase">test</Attribute>
+    </Resource>
+  </Resources>
+  <LifecycleClass>Module</LifecycleClass>
+</Module>
+</Document></Export>
