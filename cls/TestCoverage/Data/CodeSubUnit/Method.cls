@@ -18,7 +18,7 @@ Method UpdateComplexity() As %Status
 		// Get unique by map.ToLine to avoid issues with mapping of embedded SQL
 		// (all lines of the generated query map back to the class line defining it)
 		Set tResult = ##class(%SQL.Statement).%ExecDirect(,
-			"select distinct by (map.ToLine) element_key ""Line"", Lines ""Code"" from TestCoverage_Data.CodeUnit_Lines intcode "_
+			"select distinct by (map.ToLine) element_key as Line, Lines as Code from TestCoverage_Data.CodeUnit_Lines intcode "_
 			"join TestCoverage_Data.CodeUnitMap map "_
 			"	on map.FromHash = intcode.CodeUnit "_
 			"	and map.FromLine = intcode.element_key "_

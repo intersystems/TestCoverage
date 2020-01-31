@@ -21,13 +21,13 @@ XData Contents [ XMLNamespace = "http://www.intersystems.com/zen" ]
 </vgroup>
 <vgroup labelPosition="left" align="left" enclosingClass="box" layout="none">
 <altJSONSQLProvider id="aggregateDataProvider" maxRows="10000"
-	sql="	select 'Overall' As &quot;Routine&quot;,
-				ROUND(100*CoveredLines/ExecutableLines,2) &quot;Percent Coverage&quot;,
-				ExecutableLines &quot;Executable Lines&quot;,
-				CoveredLines As &quot;Lines Covered&quot;,
-				ROUND(100*CoveredMethods/ExecutableMethods,2) &quot;Method Coverage&quot;,
-				ExecutableMethods As &quot;Executable Methods&quot;,
-				CoveredMethods As &quot;Methods Covered&quot;,
+	sql="	select 'Overall' As Routine,
+				ROUND(100*CoveredLines/ExecutableLines,2) PercentCoverage,
+				ExecutableLines as ExecutableLines,
+				CoveredLines As LinesCovered,
+				ROUND(100*CoveredMethods/ExecutableMethods,2) MethodCoverage,
+				ExecutableMethods As ExecutableMethods,
+				CoveredMethods As MethodsCovered,
 				'' as Info,
 				1 as TopSortOrder
 			from TestCoverage_Data_Aggregate.ByRun where ExecutableLines > 0 and Run = ?
