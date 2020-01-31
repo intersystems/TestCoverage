@@ -13,7 +13,7 @@
     </Resource>
     <Resource Name="TestCoverage.INC">
     </Resource>
-    <Resource Name="/internal/testing/unit_tests/">
+    <Resource Name="/internal/testing/unit_tests/" ProcessorClass="UnitTest">
       <Attribute Name="Package">UnitTest.TestCoverage.Unit</Attribute>
       <Attribute Name="Phase">test</Attribute>
     </Resource>
