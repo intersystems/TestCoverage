@@ -493,6 +493,10 @@ Method OnAfterSaveResult(ByRef userparam)
 			$$$StopTimer
 			
 			Do ##class(TestCoverage.Utils).ShowAggregateCoverage(tRunIndex)
+
+			If $Data(userparam("CoverageReportClass"),tReportClass)#2 && $Data(userparam("CoverageReportFile"),tReportFile)#2 {
+				$$$ThrowOnError($classmethod(tReportClass,"GenerateReport",tRunIndex,tReportFile))
+			}
 		}
 	} Catch e {
 		// Swallow exceptions.
