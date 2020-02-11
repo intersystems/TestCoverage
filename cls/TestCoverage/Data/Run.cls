@@ -30,6 +30,7 @@ Property Detail As TestCoverage.DataType.Detail;
 /// Given .INT code coverage for a test run, maps it to .CLS/.MAC.
 ClassMethod MapRunCoverage(pRunIndex As %Integer) As %Status
 {
+	Set tCursorOpen = 0
 	Set tSC = $$$OK
 	Try {
 		Set tRun = ##class(TestCoverage.Data.Run).%OpenId(pRunIndex,,.tSC)
@@ -57,15 +58,17 @@ ClassMethod MapRunCoverage(pRunIndex As %Integer) As %Status
 		
 		// Here's a worse-performing approach with some extrinsic calls that ideally wouldn't be necessary:
 		&SQL(
-			INSERT OR UPDATE %NOLOCK %NOCHECK INTO TestCoverage_Data.Coverage
-				(Run,Hash,TestPath,CoveredLines,Ignore)
-			SELECT :pRunIndex,map.ToHash,%exact source.TestPath,TestCoverage.BITWISE_OR(
+			/* INSERT OR UPDATE %NOLOCK %NOCHECK INTO TestCoverage_Data.Coverage
+				(Run,Hash,TestPath,CoveredLines,Ignore) */
+			DECLARE C0 CURSOR FOR
+			SELECT map.ToHash,source.TestPath,TestCoverage.BITWISE_OR(
 				TestCoverage.LIST_TO_BIT(%DLIST(
 					CASE TestCoverage.BIT_VALUE(source.CoveredLines,map.FromLine)
 					WHEN 1 THEN map.ToLine
 					ELSE NULL END)),oldCoverage.CoveredLines),
 				map.ToHash->Generated
-			FROM TestCoverage_Data.Coverage source
+			INTO :hToHash, :hTestPath, :hCoveredLines, :hIgnore
+			FROM %NOPARALLEL TestCoverage_Data.Coverage source
 			JOIN TestCoverage_Data.CodeUnitMap map
 				ON source.Hash = map.FromHash
 			LEFT JOIN TestCoverage_Data.Coverage oldCoverage
@@ -76,8 +79,32 @@ ClassMethod MapRunCoverage(pRunIndex As %Integer) As %Status
 				AND source.Ignore = 0
 				AND source.Calculated = 0
 			GROUP BY map.ToHash,source.TestPath)
+
+		&sql(OPEN C0)
 		If (SQLCODE < 0) {
 			Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
+		}
+		Set tCursorOpen = 1
+
+		For {
+			&SQL(FETCH C0)
+			If (SQLCODE < 0) {
+				Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
+			} ElseIf (SQLCODE) {
+				Quit
+			}
+			If ##class(TestCoverage.Data.Coverage).UniqueCoverageDataExists(pRunIndex,hToHash,hTestPath,.tID) {
+				Set tCoverage = ##class(TestCoverage.Data.Coverage).%OpenId(tID,,.tSC)
+				$$$ThrowOnError(tSC)
+			} Else {
+				Set tCoverage = ##class(TestCoverage.Data.Coverage).%New()
+				Do tCoverage.RunSetObjectId(pRunIndex)
+				Do tCoverage.HashSetObjectId(hToHash)
+				Set tCoverage.TestPath = hTestPath
+			}
+			Set tCoverage.Ignore = hIgnore
+			Set tCoverage.CoveredLines = $BitLogic(tCoverage.CoveredLines|hCoveredLines)
+			$$$ThrowOnError(tCoverage.%Save())
 		}
 		
 		// Copy any other metrics captured/requested as well.
@@ -116,6 +143,9 @@ ClassMethod MapRunCoverage(pRunIndex As %Integer) As %Status
 		}
 	} Catch e {
 		Set tSC = e.AsStatus()
+	}
+	If tCursorOpen {
+		&sql(CLOSE C0)
 	}
 	Quit tSC
 }
@@ -161,4 +191,3 @@ Storage Default
 }
 
 }
-

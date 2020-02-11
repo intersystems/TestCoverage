@@ -2,14 +2,14 @@
 <Export generator="Cache" version="25">
 <Document name="TestCoverage.ZPM"><Module>
   <Name>TestCoverage</Name>
-  <Version>2.1.0</Version>
+  <Version>2.1.1</Version>
   <Packaging>module</Packaging>
   <Resources>
     <Resource Name="TestCoverage.PKG">
     </Resource>
-    <Resource Name="TestCoverage.DataType.PKG" Deploy="false">
+    <Resource Name="TestCoverage.DataType.PKG">
     </Resource>
-    <Resource Name="TestCoverage.Utils.LineByLineMonitor.CLS" Deploy="true">
+    <Resource Name="TestCoverage.Utils.LineByLineMonitor.CLS">
     </Resource>
     <Resource Name="TestCoverage.INC">
     </Resource>
