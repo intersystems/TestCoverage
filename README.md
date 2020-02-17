@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/intersystems/TestCoverage.svg?branch=master)](https://travis-ci.com/intersystems/TestCoverage)
+
 # Unit Test Coverage for ObjectScript
 
 Run your typical ObjectScript %UnitTest tests and see which lines of your code are executed. Includes Cobertura-style reporting for use in continuous integration tools.
