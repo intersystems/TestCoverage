@@ -17,7 +17,7 @@ XData Contents [ XMLNamespace = "http://www.intersystems.com/zen" ]
 <vgroup width="80%" align="center">
 <hgroup align="left" enclosingClass="box" cellAlign="even">
 <vgroup labelPosition="left">
-<tc:select id="testPath" label="Test Path" sql="select distinct %exact TestPath from TestCoverage_Data.Coverage where Run = ? and Hash = ?" onchange="zenPage.testFilterChanged(zenThis)">
+<tc:select id="testPath" label="Test Path" sql="select distinct TestPath from TestCoverage_Data.Coverage where Run = ? and Hash = ?" onchange="zenPage.testFilterChanged(zenThis)">
 <parameter value="#(%page.testIndex)#" />
 <parameter value="#(%page.codeUnit)#" />
 </tc:select>
@@ -65,4 +65,3 @@ ClientMethod onloadHandler() [ Language = javascript ]
 }
 
 }
-

@@ -1,0 +1,48 @@
+language: minimal
+
+os: linux
+
+services:
+  - docker
+
+env:
+  - container_image="intersystemsdc/iris-community:2019.4.0.383.0-zpm"
+    instance="iris"
+    package="testcoverage"
+    build_flags="-verbose"
+    >
+    test_flags="-verbose -DUnitTest.ManagerClass=TestCoverage.Manager -DUnitTest.JUnitOutput=/source/junit.xml
+    -DUnitTest.FailuresAreFatal=1 -DUnitTest.Manager=TestCoverage.Manager
+    -DUnitTest.UserParam.CoverageReportClass=TestCoverage.Report.Cobertura.ReportGenerator
+    -DUnitTest.UserParam.CoverageReportFile=/source/coverage.xml"
+
+install:
+  # Run InterSystems IRIS instance
+  - docker pull $container_image
+  - docker run -d -h $instance --name $instance -v $TRAVIS_BUILD_DIR:/source --init $container_image
+  - echo halt > wait
+  - until docker exec --interactive $instance iris session $instance < wait; do sleep 1; done # Wait for instance to be ready
+  # Workaround for permissions issues in TestCoverage (creating directory for source export)
+  - chmod 777 $TRAVIS_BUILD_DIR
+
+script:
+  # Run build
+  - >
+    echo
+    "set good = ##class(%ZPM.PackageManager).Shell(\"load /source $build_flags\")
+    write !
+    if good<1 { do \$System.Process.Terminate(\$job,1) }
+    halt" > build
+  # Run tests (with workaround for https://github.com/intersystems-community/zpm/pull/30 - test result will always be index 1)
+  - >
+    echo
+    "set ^||%UnitTest.Manager.LastResult = 1
+    set good = ##class(%ZPM.PackageManager).Shell(\"$package test -only $test_flags\")
+    write !
+    if good<1 { do \$System.Process.Terminate(\$job,1) }
+    halt" > test
+  - docker exec --interactive $instance iris session $instance -B < build && docker exec --interactive $instance iris session $instance -B < test
+
+after_success:
+  # Publish to codecov
+  - bash <(curl -s https://codecov.io/bash)

@@ -11,7 +11,7 @@ Index MeaningfulCoverageData On (Run, Calculated, Ignore, Hash, TestPath) [ Data
 Property Run As TestCoverage.Data.Run [ Required ];
 
 /// Path through test cases/suites
-Property TestPath As %String(MAXLEN = 300, TRUNCATE = 1) [ Required ];
+Property TestPath As %String(COLLATION = "EXACT", MAXLEN = 300, TRUNCATE = 1) [ Required ];
 
 /// Target code unit, uniquely identified by hash.
 Property Hash As TestCoverage.Data.CodeUnit [ Required ];
@@ -118,7 +118,6 @@ ClassMethod GetAvailableMetrics() As %List [ CodeMode = objectgenerator ]
 	Quit $$$OK
 }
 
-/// List of 
 Storage Default
 {
 <Data name="CoverageDefaultData">
@@ -161,8 +160,7 @@ Storage Default
 </Data>
 <DataLocation>^TestCoverage.Data.CoverageD</DataLocation>
 <DefaultData>CoverageDefaultData</DefaultData>
-<Description>
-<![CDATA[List of ]]></Description>
+<Description></Description>
 <IdLocation>^TestCoverage.Data.CoverageD</IdLocation>
 <IndexLocation>^TestCoverage.Data.CoverageI</IndexLocation>
 <StreamLocation>^TestCoverage.Data.CoverageS</StreamLocation>
@@ -170,4 +168,3 @@ Storage Default
 }
 
 }
-

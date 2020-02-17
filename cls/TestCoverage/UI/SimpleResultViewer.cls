@@ -18,14 +18,14 @@ XData Contents [ XMLNamespace = "http://www.intersystems.com/zen" ]
 <hgroup align="left" enclosingClass="box" cellAlign="even">
 <vgroup labelPosition="left">
 <tc:select id="testIndex" label="Test Index" sql="select distinct Run from TestCoverage_Data.Coverage order by Run desc" onchange="zenPage.testFilterChanged(zenThis)" />
-<tc:select id="testPath" label="Test Path" sql="select distinct %exact TestPath from TestCoverage_Data.Coverage where Run = ?" onchange="zenPage.testFilterChanged(zenThis)">
+<tc:select id="testPath" label="Test Path" sql="select distinct TestPath from TestCoverage_Data.Coverage where Run = ?" onchange="zenPage.testFilterChanged(zenThis)">
 <parameter value="#(%page.testIndex)#" />
 </tc:select>
 
 <spacer height="25px" />
 
 <tc:select id="codeCovered" label="Code Unit"
-	sql="select distinct %exact Hash,Hash->Name||'.'||Hash->Type
+	sql="select distinct Hash,Hash->Name||'.'||Hash->Type
 			from TestCoverage_Data.Coverage d,(select ? as Run, ? as TestPath) params
 			where d.Run = params.Run
 				and (params.TestPath is null or params.TestPath = d.TestPath)
