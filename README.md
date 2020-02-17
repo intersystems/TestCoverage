@@ -9,6 +9,13 @@ Run your typical ObjectScript %UnitTest tests and see which lines of your code a
 Note: a minimum platform version of Caché/Ensemble 2016.2 is required.
 This tool will also work on any version of InterSystems IRIS.
 
+### Installation: ZPM
+
+If you already have the [ObjectScript Package Manager](https://openexchange.intersystems.com/package/ObjectScript-Package-Manager-2), installation is as easy as:
+```
+zpm "install testcoverage"
+```
+
 ### Installation: of Release
 
 Download an XML file from [Releases](https://github.com/intersystems/TestCoverage/releases), then run:
