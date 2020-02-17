@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/intersystems/TestCoverage.svg?branch=master)](https://travis-ci.com/intersystems/TestCoverage)
+[![Build Status](https://travis-ci.com/intersystems/TestCoverage.svg?branch=master)](https://travis-ci.com/intersystems/TestCoverage) [![codecov](https://codecov.io/gh/intersystems/TestCoverage/branch/master/graph/badge.svg)](https://codecov.io/gh/intersystems/TestCoverage)
 
 # Unit Test Coverage for ObjectScript
 
