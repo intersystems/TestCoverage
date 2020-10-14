@@ -179,12 +179,12 @@ ClassMethod RunTestSuites(testspec As %String, qspec, ByRef userparam) As %Statu
 	Set cleanup=0
 	Set manager.Debug=$$$qualifierGetValue(qstruct,"debug")
 	Set manager.Display=$s($$$qualifierGetValue(qstruct,"displaylog"):"log",1:"")_","_$s($$$qualifierGetValue(qstruct,"displayerror"):"error",1:"")
-	Set manager.ReportVariableLeaks=$$$qualifierGetValue(qstruct,"findleakedvariables")
-	Set manager.LoadUDL=$$$qualifierGetValue(qstruct,"loadudl")
-	Set manager.LoadXML=$$$qualifierGetValue(qstruct,"loadxml")
+	Set manager.ReportVariableLeaks=$Get($$$qualifierGetValue(qstruct,"findleakedvariables"),0)
+	Set manager.LoadUDL=$Get($$$qualifierGetValue(qstruct,"loadudl"),0)
+	Set manager.LoadXML=$Get($$$qualifierGetValue(qstruct,"loadxml"),1)
 	Set manager.UserParam=$g(userparam)
 	Set key="" For  Set key=$o(userparam(key)) Quit:key=""  do manager.UserFields.SetAt($g(userparam(key)),key)
-	If $$$qualifierGetValue(qstruct,"cleanup"),$$$qualifierGetValue(qstruct,"run"),'manager.Debug,$$$qualifierGetValue(qstruct,"delete") {
+	If $Get($$$qualifierGetValue(qstruct,"cleanup"),1),$$$qualifierGetValue(qstruct,"run"),'manager.Debug,$$$qualifierGetValue(qstruct,"delete") {
 		Set sc=manager.RecordNamespace() If $$$ISERR(sc) Quit sc
 		Set cleanup=1
 	}
@@ -321,8 +321,8 @@ ClassMethod GetSubDirectories(root, topdir As %String, level As %Integer, suite 
 	;
 	Set rs=##class(%ResultSet).%New("%File:FileSet")
 	Set fileset="",sep=""
-	If $$$qualifierGetValue(qstruct,"loadxml") Set fileset="*.xml;*.XML",sep=";"
-	If $$$qualifierGetValue(qstruct,"loadudl") Set fileset=fileset_sep_"*.cls;*.mac;*.int;*.inc;*.CLS;*.MAC;*.INT;*.INC"
+	If $Get($$$qualifierGetValue(qstruct,"loadxml"),1) Set fileset="*.xml;*.XML",sep=";"
+	If $Get($$$qualifierGetValue(qstruct,"loadudl"),0) Set fileset=fileset_sep_"*.cls;*.mac;*.int;*.inc;*.CLS;*.MAC;*.INT;*.INC"
 	Set sc=rs.Execute(topdir,fileset,"")
 	If $$$ISOK(sc),rs.Next() Set subdirs(topdir)=$lb(topdir,suite)
 	Kill rs
@@ -694,19 +694,25 @@ Method Cleanup(ByRef State As %String, kill = 0) As %Status
 		Set rc=$$$ERROR($$$GeneralError,"Locks left after unit test run: "_$extract(locks,1,*-1))
 		Set sc=$$$ADDSC(sc,rc)
 	}
-	Set $ECode="",$ZError="" Do resetProcessState^%SYS.cspServer2()
+	Set $ECode="",$ZError=""
+	Try {
+		Do resetProcessState^%SYS.cspServer2()
+	} Catch e {
+		//Ignore, may not be possible on older versions.
+	}
 	#; Cleanup any $sortbegin there are active
 	Set tmp=$sortend(,0)
 	If tmp {
 		Set rc=$$$ERROR($$$GeneralError,"Test left $sortbegin open without closing it")
 		Set sc=$$$ADDSC(sc,rc)
 	}
+	#if $System.CLS.IsMthd("%SYS.NLS.Format","UseLocale")
 	If ##class(%SYS.NLS.Format).UseLocale() {
 		Do ##class(%SYS.NLS.Format).UseLocale(0)
 		Set rc=$$$ERROR($$$GeneralError,"Modified 'UseLocale' to 1 and did not restore it after (##class(%SYS.NLS.Format).UseLocale())")
 		Set sc=$$$ADDSC(sc,rc)
-
 	}
+	#endif
 	Quit sc
 }
 
@@ -897,7 +903,9 @@ Method %OnNew(initvalue As %CacheString) As %Status [ Private, ProcedureBlock = 
 	Set $system.Context.SQL().DisableStatCollection=1
 	#EndIf
 	Set i%Environment("callererrorinfo")=$lb(^%oddENV($$$cENVcallererrorinfo))
+	#if $System.CLS.IsMthd("%SYS.NLS.Format","UseLocale")
 	Set i%Environment("uselocale")=##class(%SYS.NLS.Format).UseLocale(0)
+	#endif
 	ZKill ^%oddENV($$$cENVcallererrorinfo)
 	Do ..Record(.state)
 	Merge i%Environment("lockstate")=state
@@ -913,7 +921,9 @@ Method %OnClose() As %Status [ Private, ProcedureBlock = 1, ServerOnly = 1 ]
 	} Else {
 		ZKill ^%oddENV($$$cENVcallererrorinfo)
 	}
+	#if $System.CLS.IsMthd("%SYS.NLS.Format","UseLocale")
 	Do ##class(%SYS.NLS.Format).UseLocale(i%Environment("uselocale"))
+	#endif
 	#If $$$comMemberDefined("%SYSTEM.Context.SQL",$$$cCLASSproperty,"DisableStatCollection")
 	Set $system.Context.SQL().DisableStatCollection=i%Environment("stat-col")
 	#EndIf
@@ -971,8 +981,8 @@ ClassMethod AutoLoad(dir As %String, sub As %String, ByRef classArray As %String
 	. s prev=pwd,pwd=##class(%File).ParentDirectoryName(pwd)
 	; walk back down the directory tree loading /autoload directories
 	Set fileset="",sep=""
-	If $$$qualifierGetValue(qstruct,"loadxml") Set fileset="*.xml;*.XML",sep=";"
-	If $$$qualifierGetValue(qstruct,"loadudl") Set fileset=fileset_sep_"*.cls;*.mac;*.int;*.inc;*.CLS;*.MAC;*.INT;*.INC"
+	If $Get($$$qualifierGetValue(qstruct,"loadxml"),1) Set fileset="*.xml;*.XML",sep=";"
+	If $Get($$$qualifierGetValue(qstruct,"loadudl"),0) Set fileset=fileset_sep_"*.cls;*.mac;*.int;*.inc;*.CLS;*.MAC;*.INT;*.INC"
 	f i=1:1:$ll(dirlist) d
 	. s status=$system.OBJ.ImportDir($lg(dirlist,i),fileset,.qstruct,,1,.classArray,listonly)
 	. s:$$$ISOK(ret) ret=status
@@ -1267,6 +1277,7 @@ Method CleanNamespace() As %Status [ Private ]
 		If $extract(i,1,$length("DeepSee"))="DeepSee" Continue
 		Set upper=$zconvert(i,"U")
 		If $extract(upper)="Z"||($extract(upper,1,2)="%Z"),$extract(upper,1,3)'="ZEN",$extract(upper,1,4)'="%ZEN" Continue
+		If $extract(upper,1,12)="TESTCOVERAGE" Continue
 		If '$data(i%NSInfo("gbl",i)) {
 			If $data(@("^|"""_datadb_"""|"_i)) {
 				If first {
@@ -1308,9 +1319,11 @@ Method CleanNamespace() As %Status [ Private ]
 	}
 	#; Purge all cached queries and unfreeze all frozen plan and clear SQL stats
 	Do Purge^%SYS.SQLSRV()
+	#if $System.CLS.IsMthd("%SYSTEM.SQL","FreezePlans")
 	Do $SYSTEM.SQL.FreezePlans(0,1,,.Errors)
-	do Purge^%SYS.PToolsDEP($NAMESPACE,"")			// MRP963  [DEPRECATED]
-	do clearStatsSQL^%SYS.PTools($NAMESPACE,"")
+	#endif
+	Try { Do Purge^%SYS.PToolsDEP($NAMESPACE,"") } Catch e {}
+	Try { Do clearStatsSQL^%SYS.PTools($NAMESPACE,"") } Catch e {}
 	Quit $$$OK
 }
 
@@ -1449,4 +1462,3 @@ Method OnAfterOneTest(suite As %String, class As %String, method As %String) As 
 }
 
 }
-

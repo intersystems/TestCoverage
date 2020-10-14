@@ -1,8 +1,11 @@
-Class TestCoverage.UI.Component.altJSONSQLProvider Extends %ZEN.Auxiliary.altJSONSQLProvider [ System = 3 ]
+Class TestCoverage.UI.Component.altJSONSQLProvider Extends %ZEN.Auxiliary.jsonSQLProvider [ System = 3 ]
 {
 
 /// This is the XML namespace for this component.
 Parameter NAMESPACE = "http://www.intersystems.com/zen/healthshare/test-coverage";
+
+/// Overridden to support use on older platform versions
+Property arrayName As %ZEN.Datatype.string [ InitialExpression = "children" ];
 
 /// Overridden to deal with a few issues on older platform versions
 /// (minimal modifications, all commented as such)
@@ -55,6 +58,7 @@ Method %DrawJSON() As %Status [ Internal ]
 		}
 		Set ..sql = tOrigSQL
 
+		#if $$$comClassDefined("%Library.DynamicAbstractObject")
  		Set aet = ##class(%DynamicAbstractObject).%FromJSON("{"""_..arrayName_""":[]}")
  		Set arrayNode = aet.%Get(..arrayName)
 
@@ -90,6 +94,40 @@ Method %DrawJSON() As %Status [ Internal ]
 		Do aet.%ToJSON(.tStream)
 		Set tSC = tStream.OutputToDevice()
 		// END MODIFICATION.
+		#else
+		// Old jsonProvider implementation:
+		Set tLF=$S(..%Format["w":$C(13,10), ..%Format["n":$C(10), 1:"")
+		If ..%Format'=$TR(..%Format,"it123456789") { Set tN=+$ZStrip(..%Format,"<E'N"), $P(tTab,$S(..%Format["t":$C(9),1:" "),1+$S(tN:tN,..%Format["t":1,1:4))="" }
+		Else { Set tTab="" }
+		Set tIncludeWhitespace = (tLF_tTab'="")
+
+		// wrapper object for children array containing results
+		Write "{"
+		If tIncludeWhitespace Write tLF
+		Write """"_..arrayName_""":["
+		If tIncludeWhitespace Write tLF
+
+		// fetch and emit JSON
+		// n.b. this should be pushed into the result set itself
+		Set tRow = 0
+		While (tRS.%Next(.tSC) && ((..maxRows = 0) || (tRow < ..maxRows))) {
+			Quit:$$$ISERR(tSC)
+			Set tRow = tRow + 1
+
+			Write $S(tRow>1:",",1:""),"{"
+			For c = 1:1:tCols {
+				Set tVal = tRS.%GetData(c)
+				Write $S(c>1:",",1:"")
+				Write $$$ZENJSONPAIR($G(tColInfo(c,"name")),tVal,..%Format)
+			}
+			Write "}"
+			If tIncludeWhitespace Write tLF
+		}
+		Write "]"
+		If tIncludeWhitespace Write tLF
+		Write "}"
+		If tIncludeWhitespace Write tLF
+		#endif
 	}
 	Catch(ex) {
 		Write "null"
@@ -99,4 +137,3 @@ Method %DrawJSON() As %Status [ Internal ]
 }
 
 }
-

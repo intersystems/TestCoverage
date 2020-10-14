@@ -321,7 +321,11 @@ Method UpdateSourceMap(pSourceNamespace As %String, ByRef pCache) As %Status
 							Continue
 						}
 						Set tOffset = tLine - tMethodOffset - 1
-						Set tSC = ##class(%Studio.Debugger).INTLine(tClass_".CLS",tMethodName,tOffset,.tIntName,.tIntLine,.tMissing,pSourceNamespace)
+						#if $Length($$$comMemberKeyGet("%Studio.Debugger",$$$cCLASSmethod,"INTLine",$$$cMETHformalspec),",")=7
+						Set tSC = ##class(%Studio.Debugger).INTLine(tClass_".CLS",tMethodName,tOffset,.tIntName,.tIntLine,.tMissing,pSourceNamespace)	
+						#else
+						Set tSC = ##class(%Studio.Debugger).INTLine(tClass_".CLS",tMethodName,tOffset,.tIntName,.tIntLine,.tMissing)
+						#endif
 						$$$ThrowOnError(tSC)
 						If 'tMissing && (tIntName = ..Name) {
 							$$$ThrowOnError(##class(TestCoverage.Data.CodeUnitMap).Create(..Hash,tIntLine,tClassCodeUnit.Hash,tLine,tLine))
@@ -488,8 +492,7 @@ Storage Default
 <IdLocation>^TestCoverage.Data.CodeUnitD</IdLocation>
 <IndexLocation>^TestCoverage.Data.CodeUnitI</IndexLocation>
 <StreamLocation>^TestCoverage.Data.CodeUnitS</StreamLocation>
-<Type>%Library.CacheStorage</Type>
+<Type>%Storage.Persistent</Type>
 }
 
 }
-

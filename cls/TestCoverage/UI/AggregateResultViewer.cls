@@ -20,7 +20,7 @@ XData Contents [ XMLNamespace = "http://www.intersystems.com/zen" ]
 <tc:testResultsLink id="testResultsLink" coverageRunId="#(%page.testIndex)#" />
 </vgroup>
 <vgroup labelPosition="left" align="left" enclosingClass="box" layout="none">
-<altJSONSQLProvider id="aggregateDataProvider" maxRows="10000"
+<tc:altJSONSQLProvider id="aggregateDataProvider" maxRows="10000"
 	sql="	select 'Overall' As Routine,
 				ROUND(100*CoveredLines/ExecutableLines,2) PercentCoverage,
 				ExecutableLines as ExecutableLines,
@@ -45,7 +45,7 @@ XData Contents [ XMLNamespace = "http://www.intersystems.com/zen" ]
 			order by TopSortOrder,Routine">
 <parameter paramName="1" value="#(%page.testIndex)#" />
 <parameter paramName="2" value="#(%page.testIndex)#" />
-</altJSONSQLProvider>
+</tc:altJSONSQLProvider>
 
 <tc:dataGrid id="aggregateDataGrid" controllerId="aggregateDataProvider" width="100%" ondrawcell="return zenPage.drawCell(value,row,col);">
 <columnDescriptor caption="Code Unit" type="string" readOnly="true"/>
@@ -100,4 +100,3 @@ ClientMethod drawCell(value, row, col) [ Language = javascript ]
 }
 
 }
-
