@@ -1,3 +1,5 @@
+Include %occErrors
+
 /// Wrapper around %Monitor.System.LineByLine to ensure that the monitor is stopped when it should be, and also
 /// to wrap the decision about whether to stop/start the monitor or to just clear counters.
 Class TestCoverage.Utils.LineByLineMonitor Extends %Monitor.System.LineByLine
@@ -118,6 +120,41 @@ ClassMethod ClearCounters() As %Status
 ClassMethod IsRunning() As %Boolean [ CodeMode = expression ]
 {
 $zu(84,8) && $zu(84,1)
+}
+
+/// Overridden and minimally modified from parent implementation
+ClassMethod Start(Routine As %List, Metric As %List, Process As %List) As %Status
+{
+	// Before attempting to start monitor, ensure we actually have object code for at least some element of Routine
+	Set pointer = 0
+	Set found = 0
+	While $ListNext(Routine,pointer,routine) {
+		Set rtnname = routine_".obj"
+		For {
+			Set data = ""
+			Set more = $$LIST^%R(rtnname,32767,0,.data,.ctx)
+			If (data '= "") {
+				Set found = 1
+				Quit
+			}
+		}
+		If (found = 1) {
+			Quit
+		}
+	}
+	If 'found {
+		Quit ..GetError("NoObjFound")
+	}
+	
+	Quit ##super(.Routine,.Metric,.Process)
+}
+
+ClassMethod GetError(key As %String, args...)
+{
+	Quit $Case(key,
+		"NoObjFound":$System.Status.Error($$$GeneralError,"Unable to start monitor: no object code exists for selected classes/routines. "_
+			"Possible remediations: ensure that at least some class/routine is selected; ""view other"" for the routine and make sure that the "_
+			".INT code actually has some content that could be covered."))
 }
 
 }

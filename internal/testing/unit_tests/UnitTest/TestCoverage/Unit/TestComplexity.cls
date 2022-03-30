@@ -7,6 +7,7 @@ Method TestMethodsInThisClass()
 	Set tClass = $classname()
 	&sql(delete from TestCoverage_Data.CodeUnit where Name %STARTSWITH :tClass)
 	Do $$$AssertTrue(SQLCODE>=0)
+	Do $$$AssertStatusOK($System.OBJ.Compile($classname(),"ck-d"))
 	Do $$$AssertStatusOK(##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tClass_".1.INT"))
 	If $$$AssertStatusOK(##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tClass_".CLS",,.tCodeUnit)) {
 		Set tKey = ""
@@ -224,7 +225,8 @@ Method FunctionWithAppropriateScope(pArgument As %String)
 	Quit tSC
 }
 
-/// Complexity: 2 (1 + If)
+/// Complexity: 7 (1 + UCQ)
+/// Was 2 on earlier IRIS versions; UCQ adds a bit.
 Method MethodWithEmbeddedSQL()
 {
 	&sql(select top 1 1 into :foo)

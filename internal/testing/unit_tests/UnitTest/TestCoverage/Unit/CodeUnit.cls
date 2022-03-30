@@ -10,6 +10,8 @@ Method TestCodeUnitCreation()
 		If (tResult.%SQLCODE < 0) {
 			Throw ##class(%Exception.SQL).CreateFromSQLCODE(tResult.%SQLCODE,tResult.%Message)
 		}
+
+		Do $$$AssertStatusOK($System.OBJ.Compile($classname(),"ck-d"))
 		
 		#dim tCodeUnit As TestCoverage.Data.CodeUnit
 		Set tClsName = $classname()_".CLS"

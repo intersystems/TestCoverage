@@ -203,6 +203,10 @@ Method StartCoverageTracking() As %Status [ Private ]
 				}
 			}
 			
+			If (tRelevantTargets = "") {
+				Write !,"WARNING: Nothing found to monitor for routine(s): "_$ListToString(tNewTargets)
+			}
+			
 			// If we are to monitor all process IDs, actually use all except for the SuperServer (Routine = '%SYS.SERVER')
 			// Workaround for versions without RFD1682
 			Set tProcessIDs = ..ProcessIDs
@@ -474,6 +478,8 @@ Method EndCoverageTracking(pTestSuite As %String = "", pTestClass As %String = "
 Method OnAfterSaveResult(ByRef userparam)
 {
 	Try {
+		Quit:'$IsObject(..Run)
+		
 		// Associate to unit test results.
 		Do ..Run.TestResultsSetObjectId(..LogIndex)
 		$$$ThrowOnError(..Run.%Save())
@@ -710,12 +716,14 @@ Method PrintURL()
 {
 	Do ##super()
 	
-	Set tURL = ..GetURL(..Run.%Id())
-	If (tURL '= "") {
-		Do ..PrintLine("Use the following URL to view test coverage data:")
-		Do ..PrintLine(tURL)
-	} Else {
-		Do ..PrintLine("WARNING: No default web application found for namespace '"_$Namespace_"' - test coverage results cannot be viewed.")
+	If $IsObject(..Run) {
+		Set tURL = ..GetURL(..Run.%Id())
+		If (tURL '= "") {
+			Do ..PrintLine("Use the following URL to view test coverage data:")
+			Do ..PrintLine(tURL)
+		} Else {
+			Do ..PrintLine("WARNING: No default web application found for namespace '"_$Namespace_"' - test coverage results cannot be viewed.")
+		}
 	}
 	Quit
 }
