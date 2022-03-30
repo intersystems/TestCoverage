@@ -216,6 +216,7 @@ ClassMethod RunTestSuites(testspec As %String, qspec, ByRef userparam) As %Statu
 		Do manager.LogStateBegin(tDummySuite)
 		Do manager.LogStateStatus(sc,tDummySuite)
 		Do manager.LogStateEnd(0)
+		Set status(" "_tDummySuite)=""
 	} Else {
 		For {
 			Set suite=$order(testspec(suite)) Quit:suite=""
@@ -265,6 +266,7 @@ ClassMethod RunTestSuites(testspec As %String, qspec, ByRef userparam) As %Statu
 		Do manager.LogStateBegin(tDummySuite)
 		Do manager.LogStateStatus(sc,tDummySuite)
 		Do manager.LogStateEnd(0)
+		Set status(" "_tDummySuite)=""
 	}
 	;
 	#; Need to make a list of suites that failed and report these at the end. Is this logged under suite or testsuite from the loop above?
