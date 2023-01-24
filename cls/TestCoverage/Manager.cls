@@ -78,7 +78,16 @@ Property Monitor As TestCoverage.Utils.LineByLineMonitor [ InitialExpression = {
 /// </ul>
 /// Granular data is stored in <class>TestCoverage.Data.Coverage</class>; aggregated data is stored per class in <class>TestCoverage.Data.Aggregate.ByCodeUnit</class> and for the whole run in <class>TestCoverage.Data.Aggregate.ByRun</class>.
 /// @API.Method
-ClassMethod RunAllTests(pPackage As %String = "", pLogFile As %String = "", pCoverageClasses As %List = "", pCoverageRoutines As %List = "", pCoverageLevel As %Integer = 1, ByRef pLogIndex As %Integer, pSourceNamespace As %String = {$Namespace}, pPIDList = {$ListBuild($Job)}, pTiming As %Boolean = 0) As %Status
+ClassMethod RunAllTests(
+	pPackage As %String = "",
+	pLogFile As %String = "",
+	pCoverageClasses As %List = "",
+	pCoverageRoutines As %List = "",
+	pCoverageLevel As %Integer = 1,
+	ByRef pLogIndex As %Integer,
+	pSourceNamespace As %String = {$Namespace},
+	pPIDList = {$ListBuild($Job)},
+	pTiming As %Boolean = 0) As %Status
 {
 	#dim tUnitTestManager As TestCoverage.Manager
 	Set tSuccess = 1
@@ -129,7 +138,10 @@ ClassMethod RunAllTests(pPackage As %String = "", pLogFile As %String = "", pCov
 	Quit $Select(tSuccess:1,1:$$$ERROR($$$GeneralError,"One or more errors occurred in unit tests."))
 }
 
-Method SetCoverageTargets(pClasses As %List = "", pRoutines As %List = "", pInit As %Boolean = 0) [ Private ]
+Method SetCoverageTargets(
+	pClasses As %List = "",
+	pRoutines As %List = "",
+	pInit As %Boolean = 0) [ Private ]
 {
 	Set tList = "", tPtr = 0
 	While $ListNext(pClasses,tPtr,tClass) {
@@ -320,14 +332,18 @@ Method AddCoverageRoutine(pRoutineName As %String) [ Private ]
 	}
 }
 
-ClassMethod GetCoverageTargetsForFile(pFileName As %String, Output pTargetArray) [ Private ]
+ClassMethod GetCoverageTargetsForFile(
+	pFileName As %String,
+	Output pTargetArray) [ Private ]
 {
 	Kill pTargetArray
 	
 	Set tFileStream = ##class(%Stream.FileCharacter).%New()
 	Do tFileStream.LinkToFile(pFileName)
-	While 'tFileStream.AtEnd {
-		Set tFileLines($Increment(tFileLines)) = tFileStream.ReadLine()
+	Set tCleanFileData = ##class(TestCoverage.Utils.File).NormalizeEOL(tFileStream)
+	Do tFileStream.%Close()
+	While 'tCleanFileData.AtEnd {
+		Set tFileLines($Increment(tFileLines)) = tCleanFileData.ReadLine()
 	}
 	
 	For tLineIndex=1:1:$Get(tFileLines) {
@@ -391,7 +407,9 @@ ClassMethod GetCoverageTargetsForFile(pFileName As %String, Output pTargetArray)
 	}
 }
 
-ClassMethod SearchRoutines(pSearchExpr As %String, Output pRoutines) [ Private ]
+ClassMethod SearchRoutines(
+	pSearchExpr As %String,
+	Output pRoutines) [ Private ]
 {
 	// %Monitor.System.LineByLine:Start uses this, so why not?
 	// Probably better than using a Studio list API in terms of what is/isn't hidden,
@@ -424,7 +442,10 @@ Method GetObjectCodeForSourceNames(pSourceNameList As %List) As %List [ Private 
 	Quit tOutputNameList
 }
 
-Method EndCoverageTracking(pTestSuite As %String = "", pTestClass As %String = "", pTestMethod As %String = "") As %Status [ Private ]
+Method EndCoverageTracking(
+	pTestSuite As %String = "",
+	pTestClass As %String = "",
+	pTestMethod As %String = "") As %Status [ Private ]
 {
 	Set tSC = $$$OK
 	Try {
@@ -513,7 +534,11 @@ Method OnAfterSaveResult(ByRef userparam)
 
 /// Called before any unit tests are run.
 /// If an error status is returned, no unit tests are run.
-ClassMethod OnBeforeAllTests(manager As TestCoverage.Manager, dir As %String, ByRef qstruct, ByRef userparam) As %Status
+ClassMethod OnBeforeAllTests(
+	manager As TestCoverage.Manager,
+	dir As %String,
+	ByRef qstruct,
+	ByRef userparam) As %Status
 {
 	Set tSC = $$$OK
 	Try {
@@ -583,7 +608,11 @@ ClassMethod OnBeforeAllTests(manager As TestCoverage.Manager, dir As %String, By
 /// Called after all unit tests are run.
 /// If an error status is returned, it is logged.
 /// <var>manager</var> is an instance of this class.
-ClassMethod OnAfterAllTests(manager As TestCoverage.Manager, dir As %String, ByRef qstruct, ByRef userparam) As %Status
+ClassMethod OnAfterAllTests(
+	manager As TestCoverage.Manager,
+	dir As %String,
+	ByRef qstruct,
+	ByRef userparam) As %Status
 {
 	Set tSC = $$$OK
 	Try {
@@ -599,7 +628,11 @@ ClassMethod OnAfterAllTests(manager As TestCoverage.Manager, dir As %String, ByR
 
 /// Called before autoload, which occurs before each test suite is run.
 /// If an error status is returned, it is logged and the test suite is not run.
-Method OnBeforeAutoLoad(dir As %String, suite As %String, testspec As %String, ByRef qstruct) As %Status
+Method OnBeforeAutoLoad(
+	dir As %String,
+	suite As %String,
+	testspec As %String,
+	ByRef qstruct) As %Status
 {
 	Set tSC = $$$OK
 	Try {
@@ -613,7 +646,11 @@ Method OnBeforeAutoLoad(dir As %String, suite As %String, testspec As %String, B
 /// Called before a test suite is run.
 /// If an error status is returned, it is logged and the test suite is not run.
 /// This is called after autoload.
-Method OnBeforeTestSuite(dir As %String, suite As %String, testspec As %String, ByRef qstruct) As %Status
+Method OnBeforeTestSuite(
+	dir As %String,
+	suite As %String,
+	testspec As %String,
+	ByRef qstruct) As %Status
 {
 	Set tSC = $$$OK
 	Try {
@@ -636,7 +673,11 @@ Method OnBeforeTestSuite(dir As %String, suite As %String, testspec As %String, 
 
 /// Called after a test suite is run.
 /// If an error status is returned, it is logged.
-Method OnAfterTestSuite(dir As %String, suite As %String, testspec As %String, ByRef qstruct) As %Status
+Method OnAfterTestSuite(
+	dir As %String,
+	suite As %String,
+	testspec As %String,
+	ByRef qstruct) As %Status
 {
 	Set tSC = $$$OK
 	Try {
@@ -651,7 +692,9 @@ Method OnAfterTestSuite(dir As %String, suite As %String, testspec As %String, B
 
 /// Called before a test case (class extending <class>%UnitTest.TestCase</class>) is run.
 /// If an error status is returned, it is logged and the test case is not run.
-Method OnBeforeTestCase(suite As %String, class As %String) As %Status
+Method OnBeforeTestCase(
+	suite As %String,
+	class As %String) As %Status
 {
 	Set tSC = $$$OK
 	Try {
@@ -668,7 +711,9 @@ Method OnBeforeTestCase(suite As %String, class As %String) As %Status
 
 /// Called after a test case (class extending <class>%UnitTest.TestCase</class>) is run.
 /// If an error status is returned, it is logged.
-Method OnAfterTestCase(suite As %String, class As %String) As %Status
+Method OnAfterTestCase(
+	suite As %String,
+	class As %String) As %Status
 {
 	Set tSC = $$$OK
 	Try {
@@ -683,7 +728,10 @@ Method OnAfterTestCase(suite As %String, class As %String) As %Status
 
 /// Called before a test (method starting with "Test" in a class extending <class>%UnitTest.TestCase</class>) is run.
 /// If an error status is returned, it is logged and the test is not run.
-Method OnBeforeOneTest(suite As %String, class As %String, method As %String) As %Status
+Method OnBeforeOneTest(
+	suite As %String,
+	class As %String,
+	method As %String) As %Status
 {
 	Set tSC = $$$OK
 	Try {
@@ -699,7 +747,10 @@ Method OnBeforeOneTest(suite As %String, class As %String, method As %String) As
 
 /// Called after a test (method starting with "Test" in a class extending <class>%UnitTest.TestCase</class>) is run.
 /// If an error status is returned, it is logged.
-Method OnAfterOneTest(suite As %String, class As %String, method As %String) As %Status
+Method OnAfterOneTest(
+	suite As %String,
+	class As %String,
+	method As %String) As %Status
 {
 	Set tSC = $$$OK
 	Try {
@@ -732,7 +783,10 @@ Method PrintURL()
 /// <var>pRunID</var> is the test coverage run index.
 /// <var>pHost</var> contains the host/protocol to use.
 /// <var>pPath</var> contains the rest of the URL after that.
-ClassMethod GetURL(pRunID As %String, Output pHost As %String, Output pPath As %String) As %String
+ClassMethod GetURL(
+	pRunID As %String,
+	Output pHost As %String,
+	Output pPath As %String) As %String
 {
 	Set tSC = ##class(%Library.RoutineMgr).GetWebServerPort(.tPort,.tServer,.tURLPrefix)
 	$$$ThrowOnError(tSC)
@@ -752,4 +806,3 @@ ClassMethod GetURL(pRunID As %String, Output pHost As %String, Output pPath As %
 }
 
 }
-

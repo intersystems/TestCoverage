@@ -15,5 +15,16 @@ ClassMethod CreateDirectoryChain(pName As %String) As %Status
 	Quit tSC
 }
 
+ClassMethod NormalizeEOL(pFile As %Stream.FileCharacter) As %Stream.TmpCharacter
+{
+	Set tNewStream = ##class(%Stream.TmpCharacter).%New()
+	Do pFile.Rewind()
+	While ('pFile.AtEnd) {
+		set tTempStr = pFile.ReadLine()
+		Do tNewStream.WriteLine($ZSTRIP(tTempStr,"*",""_$CHAR(13)))
+	}
+	Do tNewStream.Rewind()
+	Quit tNewStream
 }
 
+}
