@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.com/intersystems/TestCoverage.svg?branch=master)](https://travis-ci.com/intersystems/TestCoverage) [![codecov](https://codecov.io/gh/intersystems/TestCoverage/branch/master/graph/badge.svg)](https://codecov.io/gh/intersystems/TestCoverage)
+[![Quality Gate Status](https://community.objectscriptquality.com/api/project_badges/measure?project=intersystems_iris_community%2FTestCoverage&metric=alert_status)](https://community.objectscriptquality.com/dashboard?id=intersystems_iris_community%2FTestCoverage) 
 
 # Unit Test Coverage for ObjectScript
 
