@@ -225,8 +225,9 @@ Method FunctionWithAppropriateScope(pArgument As %String)
 	Quit tSC
 }
 
-/// Complexity: 7 (1 + UCQ)
-/// Was 2 on earlier IRIS versions; UCQ adds a bit.
+/// Complexity: 14 (1 + UCQ)
+/// Was 2, and then 7, on earlier IRIS versions; UCQ adds a bit (and then a bit more)
+/// At some point we might want to just remove this test
 Method MethodWithEmbeddedSQL()
 {
 	&sql(select top 1 1 into :foo)
