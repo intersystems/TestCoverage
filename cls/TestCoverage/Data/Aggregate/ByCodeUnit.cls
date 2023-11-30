@@ -50,7 +50,7 @@ Storage Default
 <IdLocation>^TestCoverage.Data.Agg.ByCUD</IdLocation>
 <IndexLocation>^TestCoverage.Data.Agg.ByCUI</IndexLocation>
 <StreamLocation>^TestCoverage.Data.Agg.ByCUS</StreamLocation>
-<Type>%Library.CacheStorage</Type>
+<Type>%Storage.Persistent</Type>
 }
 
 }

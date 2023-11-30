@@ -56,7 +56,7 @@ Storage Default
 </Value>
 </Data>
 <DefaultData>MethodDefaultData</DefaultData>
-<Type>%Library.CacheStorage</Type>
+<Type>%Storage.Persistent</Type>
 }
 
 }

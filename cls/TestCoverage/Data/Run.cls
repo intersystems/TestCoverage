@@ -187,7 +187,8 @@ Storage Default
 <IdLocation>^TestCoverage.Data.RunD</IdLocation>
 <IndexLocation>^TestCoverage.Data.RunI</IndexLocation>
 <StreamLocation>^TestCoverage.Data.RunS</StreamLocation>
-<Type>%Library.CacheStorage</Type>
+<Type>%Storage.Persistent</Type>
 }
 
 }
+

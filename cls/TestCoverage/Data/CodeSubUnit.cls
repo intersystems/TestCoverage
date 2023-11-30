@@ -32,7 +32,7 @@ Storage Default
 <IdLocation>^TestCoverage.Data.CodeUnitC("SubUnits")</IdLocation>
 <IndexLocation>^TestCoverage.Data.CodeSubUnitI</IndexLocation>
 <StreamLocation>^TestCoverage.Data.CodeSubUnitS</StreamLocation>
-<Type>%Library.CacheStorage</Type>
+<Type>%Storage.Persistent</Type>
 }
 
 }

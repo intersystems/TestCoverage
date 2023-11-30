@@ -2,21 +2,14 @@
 <Export generator="Cache" version="25">
 <Document name="TestCoverage.ZPM"><Module>
   <Name>TestCoverage</Name>
-  <Version>2.1.3</Version>
+  <Version>2.1.4</Version>
   <Description>Run your typical ObjectScript %UnitTest tests and see which lines of your code are executed. Includes Cobertura-style reporting for use in continuous integration tools.</Description>
   <Packaging>module</Packaging>
-  <Resources>
-    <Resource Name="TestCoverage.PKG">
-    </Resource>
-    <Resource Name="TestCoverage.DataType.PKG">
-    </Resource>
-    <Resource Name="TestCoverage.INC">
-    </Resource>
-    <Resource Name="/internal/testing/unit_tests/" ProcessorClass="UnitTest">
-      <Attribute Name="Package">UnitTest.TestCoverage.Unit</Attribute>
-      <Attribute Name="Phase">test</Attribute>
-    </Resource>
-  </Resources>
+  <Resource Name="TestCoverage.PKG" Directory="cls" />
+  <Resource Name="TestCoverage.DataType.PKG" Directory="cls" />
+  <Resource Name="TestCoverage.INC" Directory="inc" />
+  <UnitTest Name="/internal/testing/unit_tests/" Package="UnitTest.TestCoverage.Unit" Phase="test" />
   <LifecycleClass>Module</LifecycleClass>
+  <SourcesRoot>.</SourcesRoot>
 </Module>
 </Document></Export>
