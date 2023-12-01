@@ -132,7 +132,7 @@ ClassMethod MapRunCoverage(pRunIndex As %Integer) As %Status
 				"	AND oldMetric.element_key = map.ToLine "_
 				"WHERE source.Run = ? "_
 				"	AND source.Ignore = 0"_
-				"	AND source.Calculated = 0"_
+				"	AND source.Calculated = 0 "_
 				"GROUP BY target.ID,map.ToLine"
 			
 			#dim tResult As %SQL.StatementResult
