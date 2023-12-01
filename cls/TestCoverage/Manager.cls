@@ -8,7 +8,7 @@ Include (%occErrors, %syPidtab, TestCoverage)
 /// </example>
 /// <br />
 /// For use in code based on a known (pre-loaded) unit test package, see documentation for <method>RunAllTests</method>. This also serves as a useful example for how to pass other related user parameters.
-Class TestCoverage.Manager Extends TestCoverage.ManagerBase
+Class TestCoverage.Manager Extends %UnitTest.Manager
 {
 
 /// Level of detail at which test coverage is tracked.

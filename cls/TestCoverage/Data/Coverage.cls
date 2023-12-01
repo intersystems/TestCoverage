@@ -160,11 +160,11 @@ Storage Default
 </Data>
 <DataLocation>^TestCoverage.Data.CoverageD</DataLocation>
 <DefaultData>CoverageDefaultData</DefaultData>
-<Description></Description>
 <IdLocation>^TestCoverage.Data.CoverageD</IdLocation>
 <IndexLocation>^TestCoverage.Data.CoverageI</IndexLocation>
 <StreamLocation>^TestCoverage.Data.CoverageS</StreamLocation>
-<Type>%Library.CacheStorage</Type>
+<Type>%Storage.Persistent</Type>
 }
 
 }
+

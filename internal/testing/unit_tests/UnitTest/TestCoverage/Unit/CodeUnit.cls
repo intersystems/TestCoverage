@@ -45,8 +45,9 @@ Method TestCodeUnitCreation()
 		Set tTestLines(tCodeGeneratorLine+2) = $ListBuild("SampleCodeGenerator+1",,,tGenCodeUnit.Hash,tGenCodeUnit.MethodMap.GetAt("SampleCodeGenerator")+1)
 		Set tTestLines(tCodeGeneratorLine+3) = $ListBuild("SampleCodeGenerator+2",,,tGenCodeUnit.Hash,tGenCodeUnit.MethodMap.GetAt("SampleCodeGenerator")+2)
 		Set tTestLines(tCodeGeneratorLine+4) = $ListBuild("SampleCodeGenerator+3",,,tGenCodeUnit.Hash,tGenCodeUnit.MethodMap.GetAt("SampleCodeGenerator")+3)
-		Set tTestLines(tNormalMethodLine+2) = $ListBuild("SampleNormalMethod+1",,,tIntCodeUnit.Hash,tIntCodeUnit.MethodMap.GetAt("zSampleNormalMethod")+1)
-		Set tTestLines(tNormalMethodLine+3) = $ListBuild("SampleNormalMethod+2",,,tIntCodeUnit.Hash,tIntCodeUnit.MethodMap.GetAt("zSampleNormalMethod")+2)
+		Set methodLabel = $Select($System.Version.GetMajor()<2023:"z",1:"")_"SampleNormalMethod"
+		Set tTestLines(tNormalMethodLine+2) = $ListBuild("SampleNormalMethod+1",,,tIntCodeUnit.Hash,tIntCodeUnit.MethodMap.GetAt(methodLabel)+1)
+		Set tTestLines(tNormalMethodLine+3) = $ListBuild("SampleNormalMethod+2",,,tIntCodeUnit.Hash,tIntCodeUnit.MethodMap.GetAt(methodLabel)+2)
 		
 		Set tLine = ""
 		For {

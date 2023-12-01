@@ -43,7 +43,7 @@ Storage Default
 <IdLocation>^TestCoverage.Data.Agg.ByRunD</IdLocation>
 <IndexLocation>^TestCoverage.Data.Agg.ByRunI</IndexLocation>
 <StreamLocation>^TestCoverage.Data.Agg.ByRunS</StreamLocation>
-<Type>%Library.CacheStorage</Type>
+<Type>%Storage.Persistent</Type>
 }
 
 }

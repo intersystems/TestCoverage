@@ -153,7 +153,7 @@ Storage Default
 <IdLocation>^TestCoverage.Data.CodeUnitMapD</IdLocation>
 <IndexLocation>^TestCoverage.Data.CodeUnitMapI</IndexLocation>
 <StreamLocation>^TestCoverage.Data.CodeUnitMapS</StreamLocation>
-<Type>%Library.CacheStorage</Type>
+<Type>%Storage.Persistent</Type>
 }
 
 }

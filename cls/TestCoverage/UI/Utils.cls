@@ -1,7 +1,7 @@
 Class TestCoverage.UI.Utils
 {
 
-Query ColoredText(pTestIndex As %String, pCodeUnit As %String, pTestPath As %String = "") As %Query(ROWSPEC = "PlainText:%String,ColoredHTML:%String,Covered:%Boolean,Executable:%Boolean") [ SqlProc ]
+Query ColoredText(pTestIndex As %String, pCodeUnit As %String, pTestPath As %String = "") As %Query(ROWSPEC = "PlainText:%String,ColoredHTML:%String,Covered:%Boolean,Executable:%Boolean,LineNumber:%Integer") [ SqlProc ]
 {
 }
 
@@ -53,7 +53,7 @@ ClassMethod ColoredTextExecute(ByRef qHandle As %Binary, pTestIndex As %String, 
 		For tLineNumber=1:1:tCodeUnit.Lines.Count() {
 			Set tText = tCodeUnit.Lines.GetAt(tLineNumber)
 			Do tCodeStream.WriteLine(tText)
-			Set $$$TempStorage($Increment($$$TempStorage)) = $ListBuild(tText,tText,$Bit(tCoveredLines,tLineNumber),$Bit(tCodeUnit.ExecutableLines,tLineNumber))
+			Set $$$TempStorage($Increment($$$TempStorage)) = $ListBuild(tText,tText,$Bit(tCoveredLines,tLineNumber),$Bit(tCodeUnit.ExecutableLines,tLineNumber),tLineNumber)
 		}
 		
 		// Color the code stream.
