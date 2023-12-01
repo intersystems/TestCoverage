@@ -1,18 +1,17 @@
-[![Build Status](https://travis-ci.com/intersystems/TestCoverage.svg?branch=master)](https://travis-ci.com/intersystems/TestCoverage) [![codecov](https://codecov.io/gh/intersystems/TestCoverage/branch/master/graph/badge.svg)](https://codecov.io/gh/intersystems/TestCoverage)
+[![codecov](https://codecov.io/gh/intersystems/TestCoverage/branch/master/graph/badge.svg)](https://codecov.io/gh/intersystems/TestCoverage)
 [![Quality Gate Status](https://community.objectscriptquality.com/api/project_badges/measure?project=intersystems_iris_community%2FTestCoverage&metric=alert_status)](https://community.objectscriptquality.com/dashboard?id=intersystems_iris_community%2FTestCoverage) 
 
-# Unit Test Coverage for ObjectScript
+# Unit Test Coverage for InterSystems ObjectScript
 
 Run your typical ObjectScript %UnitTest tests and see which lines of your code are executed. Includes Cobertura-style reporting for use in continuous integration tools.
 
 ## Getting Started
 
-Note: a minimum platform version of Caché/Ensemble 2016.2 is required.
-This tool will also work on any version of InterSystems IRIS.
+Note: a minimum platform version of InterSystems IRIS® data platform 2019.1 is required.
 
 ### Installation: ZPM
 
-If you already have the [ObjectScript Package Manager](https://openexchange.intersystems.com/package/ObjectScript-Package-Manager-2), installation is as easy as:
+If you already have the [InterSystems Package Manager](https://openexchange.intersystems.com/package/InterSystems-Package-Manager-1), installation is as easy as:
 ```
 zpm "install testcoverage"
 ```
@@ -63,7 +62,7 @@ zw ##class(TestCoverage.Utils).GrantSQLReadPermissions("_PUBLIC")
 ## User Guide
 
 ### Running Tests with Coverage
-Generally speaking, set `^UnitTestRoot`, and then call `##class(TestCoverage.Manager).RunTest()` the same you would call `##class(%UnitTest.Manager).RunTest()`. For more information on InterSystems' %UnitTest framework, see the [tutorial](https://docs.intersystems.com/latest/csp/docbook/DocBook.UI.Page.cls?KEY=TUNT) and/or the [class reference for %UnitTest.Manager](https://docs.intersystems.com/latest/csp/documatic/%25CSP.Documatic.cls?PAGE=CLASS&LIBRARY=%25SYS&CLASSNAME=%25UnitTest.Manager).
+Generally speaking, set `^UnitTestRoot`, and then call `##class(TestCoverage.Manager).RunTest()` the same you would call `##class(%UnitTest.Manager).RunTest()`. For more information on InterSystems' %UnitTest framework, see the [tutorial](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=TUNT) and/or the [class reference for %UnitTest.Manager](https://docs.intersystems.com/irislatest/csp/documatic/%25CSP.Documatic.cls?PAGE=CLASS&LIBRARY=%25SYS&CLASSNAME=%25UnitTest.Manager).
 
 The "userparam" argument can be used to pass information about code coverage data collection. For example:
 
@@ -134,7 +133,7 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 
 ## Authors
 
-* **Tim Leavitt** - *Initial implementation* - [timleavitt](http://github.com/timleavitt)
+* **Tim Leavitt** - *Initial implementation* - [timleavitt](http://github.com/timleavitt) / [isc-tleavitt](http://github.com/isc-tleavitt)
 
 See also the list of [contributors](https://github.com/intersystems/TestCoverage/contributors) who participated in this project.
 
