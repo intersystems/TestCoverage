@@ -64,6 +64,7 @@ jobs:
           echo 'set list("TestCoverage.inc") = ""' >> export
           echo 'do $System.OBJ.Export(.list,"TestCoverage-${{ github.ref }}.xml","/exportversion=2017.2")' >> export
           docker exec --interactive $instance iris session $instance -B < build && docker exec --interactive $instance iris session $instance -B < test && docker exec --interactive $instance iris session $instance -B < export
+          ls -alR
 
       - name: Create Release
         id: create_release
