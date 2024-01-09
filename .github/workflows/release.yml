@@ -55,7 +55,7 @@ jobs:
         id: tag
         uses: actions-ecosystem/action-get-latest-tag@v1
 
-      - name: Build, Test, and Export XML
+      - name: Build and Test
         run: |
           # Run build
           echo "zpm \"load /source $build_flags\":1:1" > build
@@ -63,11 +63,16 @@ jobs:
           echo "do \$System.OBJ.CompilePackage(\"$test_package\",\"ckd\") " > test
           # Run tests
           echo "zpm \"$package test -only $test_flags\":1:1" >> test
+          docker exec --interactive $instance iris session $instance -B < build && docker exec --interactive $instance iris session $instance -B < test && docker exec --interactive $instance iris session $instance -B
+
+      - name: Export XML
+        run: |
           # Pick the targets to export as XML
           echo 'set list("TestCoverage.*.cls") = ""' >> export
           echo 'set list("TestCoverage.inc") = ""' >> export
-          echo 'do $System.OBJ.Export(.list,"TestCoverage-${{ steps.tag.outputs.tag }}.xml","/exportversion=2017.2")' >> export
-          docker exec --interactive $instance iris session $instance -B < build && docker exec --interactive $instance iris session $instance -B < test && docker exec --interactive $instance iris session $instance -B < export
+          echo 'do $System.OBJ.Export(.list,"/source/TestCoverage-${{ steps.tag.outputs.tag }}.xml","/exportversion=2017.2")' >> export
+          docker exec --interactive $instance iris session $instance -B < export
+          ls -lR
 
       - name: Create Release
         id: create_release
