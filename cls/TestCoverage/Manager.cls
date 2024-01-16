@@ -78,7 +78,7 @@ Property Monitor As TestCoverage.Utils.LineByLineMonitor [ InitialExpression = {
 /// </ul>
 /// Granular data is stored in <class>TestCoverage.Data.Coverage</class>; aggregated data is stored per class in <class>TestCoverage.Data.Aggregate.ByCodeUnit</class> and for the whole run in <class>TestCoverage.Data.Aggregate.ByRun</class>.
 /// @API.Method
-ClassMethod RunAllTests(pPackage As %String = "", pLogFile As %String = "", pCoverageClasses As %List = "", pCoverageRoutines As %List = "", pCoverageLevel As %Integer = 1, ByRef pLogIndex As %Integer, pSourceNamespace As %String = {$NAMESPACE}, pPIDList = {$LISTBUILD($JOB)}, pTiming As %Boolean = 0) As %Status
+ClassMethod RunAllTests(pPackage As %String = "", pLogFile As %String = "", pCoverageClasses As %List = "", pCoverageRoutines As %List = "", pCoverageLevel As %Integer = 1, ByRef pLogIndex As %Integer, pSourceNamespace As %String = {$Namespace}, pPIDList = {$ListBuild($Job)}, pTiming As %Boolean = 0) As %Status
 {
 	#dim tUnitTestManager As TestCoverage.Manager
 	Set tSuccess = 1
