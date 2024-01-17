@@ -67,8 +67,8 @@ Generally speaking, set `^UnitTestRoot`, and then call `##class(TestCoverage.Man
 The "userparam" argument can be used to pass information about code coverage data collection. For example:
 
 ```
-Set tCoverageParams("CoverageClasses") = <$ListBuild list of class names for which code coverage data should be collected>
-Set tCoverageParams("CoverageRoutines") = <$ListBuild list of routine names for which code coverage data should be collected>
+Set tCoverageParams("CoverageClasses") = <$ListBuild list or %DynamicArray of class names for which code coverage data should be collected>
+Set tCoverageParams("CoverageRoutines") = <$ListBuild list or %DynamicArray of routine names for which code coverage data should be collected>
 Set tCoverageParams("CoverageDetail") = <0 to track code coverage overall; 1 to track it per test suite (the default); 2 to track it per test class; 3 to track it per test method.>
 Do ##class(TestCoverage.Manager).RunTest(,,.tCoverageParams)
 ```

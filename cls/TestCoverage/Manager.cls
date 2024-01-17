@@ -67,8 +67,8 @@ Property Monitor As TestCoverage.Utils.LineByLineMonitor [ InitialExpression = {
 /// <ul>
 /// <li><var>pPackage</var> has the top-level package containing all the unit test classes to run. These must already be loaded.</li>
 /// <li><var>pLogFile</var> (optional) may specify a file to log all output to.</li>
-/// <li><var>pCoverageClasses</var> (optional) has a $ListBuild list of class names within which to track code coverage. By default, none are tracked.</li>
-/// <li><var>pCoverageRoutines</var> (optional) has a $ListBuild list of routine names within which to track code coverage. By default, none are tracked.</li>
+/// <li><var>pCoverageClasses</var> (optional) has a $ListBuild list or %DynamicArray of class names within which to track code coverage. By default, none are tracked.</li>
+/// <li><var>pCoverageRoutines</var> (optional) has a $ListBuild list or %DynamicArray of routine names within which to track code coverage. By default, none are tracked.</li>
 /// <li><var>pCoverageLevel</var> (optional) is 0 to track code coverage overall; 1 to track it per test suite (the default); 2 to track it per test class; 3 to track it per test method.
 /// Note that overall tracking is always available; more granular tracking requires more time and disk space.</li>
 /// <li><var>pLogIndex</var> (optional) allows for aggregation of code coverage results across unit test runs. To use this, get it back as output from the first test run, then pass it to the next.</li>
@@ -94,8 +94,8 @@ ClassMethod RunAllTests(pPackage As %String = "", pLogFile As %String = "", pCov
 		Set tTestSuite = $Replace(pPackage,"/",".")
 		Set tSpec = "/noload/nodelete"
 		Merge tCoverageParams("LogIndex") = pLogIndex // Set only if defined.
-		Set tCoverageParams("CoverageClasses") = pCoverageClasses
-		Set tCoverageParams("CoverageRoutines") = pCoverageRoutines
+		Set tCoverageParams("CoverageClasses") = $SELECT($CLASSNAME(pCoverageClasses) = "%Library.DynamicArray":..ArrayToList(pCoverageClasses), 1:pCoverageClasses)
+		Set tCoverageParams("CoverageRoutines") = $SELECT($CLASSNAME(pCoverageRoutines) = "%Library.DynamicArray":..ArrayToList(pCoverageRoutines), 1:pCoverageRoutines)
 		Set tCoverageParams("CoverageDetail") = pCoverageLevel
 		Set tCoverageParams("SourceNamespace") = pSourceNamespace
 		Set tCoverageParams("ProcessIDs") = pPIDList
@@ -127,6 +127,16 @@ ClassMethod RunAllTests(pPackage As %String = "", pLogFile As %String = "", pCov
 	Use tOldIO
 	Close:tLogFileOpen pLogFile
 	Quit $Select(tSuccess:1,1:$$$ERROR($$$GeneralError,"One or more errors occurred in unit tests."))
+}
+
+ClassMethod ArrayToList(pDynamicArray As %DynamicArray) As %List
+{
+	Set tList = ""
+	Set tIter = pDynamicArray.%GetIterator()
+	While tIter.GetNext(, .value) {
+		Set tList = tList _ $LISTBUILD(value)
+	}
+	Quit tList
 }
 
 Method SetCoverageTargets(pClasses As %List = "", pRoutines As %List = "", pInit As %Boolean = 0) [ Private ]
