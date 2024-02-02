@@ -1,4 +1,4 @@
-name: Export XML and Release on Tag Push
+name: Release
 
 on:
   push:
@@ -10,23 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      # ** FOR GENERAL USE, LIKELY NEED TO CHANGE: **
-      package: TestCoverage
       container_image: intersystemsdc/iris-community:latest
-      
-      # ** FOR GENERAL USE, MAY NEED TO CHANGE: **
-      build_flags: -dev -verbose # Load in -dev mode to get unit test code preloaded
-      test_package: UnitTest
-      
-      # ** FOR GENERAL USE, SHOULD NOT NEED TO CHANGE: **
       instance: iris
-      # Note: test_reports value is duplicated in test_flags environment variable
       test_reports: test-reports
-      test_flags: >-
-       -verbose -DUnitTest.ManagerClass=TestCoverage.Manager -DUnitTest.JUnitOutput=/test-reports/junit.xml
-       -DUnitTest.FailuresAreFatal=1 -DUnitTest.Manager=TestCoverage.Manager
-       -DUnitTest.UserParam.CoverageReportClass=TestCoverage.Report.Cobertura.ReportGenerator
-       -DUnitTest.UserParam.CoverageReportFile=/source/coverage.xml
 
     steps:
       - name: Checkout code
