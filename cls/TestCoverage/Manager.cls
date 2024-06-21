@@ -253,8 +253,22 @@ Method StartCoverageTracking() As %Status [ Private ]
 				if ('$LISTFIND(tProcessIDs, $Job)) {
 					set $LIST(tProcessIDs, *+1) = $Job
 				}
+				// Extra check to make sure that monitor is stopped (another chance to get problem processes to unmap from shared memory)
+				// Sometimes the monitor does not stop right away if there are other processes that are being monitored.
+				// The root cause of this is unknown and could use further investigation at some point.
+				Set tMaxAttempts = 5
+				For {
+					Set tUnmappedAll = $zu(84,0,0)
+					Hang 1
+					If (tUnmappedAll) {
+						Quit
+					}
+					If ($Increment(tUnmapCounter) > tMaxAttempts) {
+						Set tMsg = $$$FormatText("Some process(es) still holding on to shared memory for line by line monitor after %1 attempts to release. See console log or cstat -p-1 for details.",tMaxAttempts)
+						$$$ThrowStatus($$$ERROR($$$GeneralError,tMsg))
+					}
+				}
 			}
-			set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = tProcessIDs
 			Set tMetrics = $ListBuild("RtnLine") _ $Select(..Timing:$ListBuild("Time","TotalTime"),1:"")
 			$$$ThrowOnError(..Monitor.StartWithScope(tRelevantTargets,tMetrics,tProcessIDs))
 		}
