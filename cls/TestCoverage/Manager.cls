@@ -50,6 +50,8 @@ Property SourceNamespace As %String(MAXLEN = 255) [ Internal, Private ];
 
 Property ProcessIDs As %List [ Internal, Private ];
 
+Property InteroperabilityProcesses As %Boolean [ InitialExpression = 0, Internal, Private ];
+
 Property Run As TestCoverage.Data.Run;
 
 /// Known coverage targets (already snapshotted). <br />
@@ -176,6 +178,24 @@ Method CoverageTargetsSet(%value) As %Status [ Internal, Private ]
 	Quit $$$OK
 }
 
+Method LogAssert(success, action, description, extra, location)
+{
+	set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = "We're in LogAssert"
+	do ##super(success, action, description, extra, location)
+	if (..InteroperabilityProcesses) {
+		// Collect the list of PIDs used by Interoperability processes in the current namespace
+		// Run unit tests collecting coverage in that specific list of processes (plus the current process)
+		&sql(select %DLIST(Process) into :tProcessIDs from %SYS.ProcessQuery_SS() where "User" = '_Ensemble')
+		If (SQLCODE < 0) {
+			Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
+		}
+		if ('$LISTFIND(tProcessIDs, $Job)) {
+			set $LIST(tProcessIDs, *+1) = $Job
+		}
+		set ..ProcessIDs = tProcessIDs
+	}
+}
+
 Method StartCoverageTracking() As %Status [ Private ]
 {
 	Set tSC = $$$OK
@@ -242,33 +262,7 @@ Method StartCoverageTracking() As %Status [ Private ]
 					}
 				}
 			}
-			ElseIf ($list(tProcessIDs, 1)="Interop")
-			{
-				// Collect the list of PIDs used by Interoperability processes in the current namespace
-				// Run unit tests collecting coverage in that specific list of processes (plus the current process)
-				&sql(select %DLIST(Process) into :tProcessIDs from %SYS.ProcessQuery_SS() where "User" = '_Ensemble')
-				If (SQLCODE < 0) {
-					Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
-				}
-				if ('$LISTFIND(tProcessIDs, $Job)) {
-					set $LIST(tProcessIDs, *+1) = $Job
-				}
-				// Extra check to make sure that monitor is stopped (another chance to get problem processes to unmap from shared memory)
-				// Sometimes the monitor does not stop right away if there are other processes that are being monitored.
-				// The root cause of this is unknown and could use further investigation at some point.
-				Set tMaxAttempts = 5
-				For {
-					Set tUnmappedAll = $zu(84,0,0)
-					Hang 1
-					If (tUnmappedAll) {
-						Quit
-					}
-					If ($Increment(tUnmapCounter) > tMaxAttempts) {
-						Set tMsg = $$$FormatText("Some process(es) still holding on to shared memory for line by line monitor after %1 attempts to release. See console log or cstat -p-1 for details.",tMaxAttempts)
-						$$$ThrowStatus($$$ERROR($$$GeneralError,tMsg))
-					}
-				}
-			}
+			
 			set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = tProcessIDs
 			Set tMetrics = $ListBuild("RtnLine") _ $Select(..Timing:$ListBuild("Time","TotalTime"),1:"")
 			$$$ThrowOnError(..Monitor.StartWithScope(tRelevantTargets,tMetrics,tProcessIDs))
@@ -564,6 +558,8 @@ ClassMethod OnBeforeAllTests(manager As TestCoverage.Manager, dir As %String, By
 			Set tProcessIDs = ""
 		} ElseIf (tProcessIDs = "") || '$ListValid(tProcessIDs) {
 			Set tProcessIDs = $ListBuild($Job)
+		} ElseIf ($list(tProcessIDs, 1)="Interop") {
+			Set manager.InteroperabilityProcesses = 1
 		}
 		Set tTiming = $Get(userparam("Timing"),0)
 		Set tSubject = $Get(userparam("Subject"))
