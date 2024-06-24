@@ -193,6 +193,7 @@ Method LogAssert(success, action, description, extra, location)
 			set $LIST(tProcessIDs, *+1) = $Job
 		}
 		set ..ProcessIDs = tProcessIDs
+		set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = tProcessIDs
 	}
 }
 
@@ -264,7 +265,7 @@ Method StartCoverageTracking() As %Status [ Private ]
 			}
 			ElseIf ($list(tProcessIDs, 1)="Interop")
 			{
-				set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = "ProcessIDs was still Interop" 
+				// set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = "ProcessIDs was still Interop" 
 				// Collect the list of PIDs used by Interoperability processes in the current namespace
 				// Run unit tests collecting coverage in that specific list of processes (plus the current process)
 				&sql(select %DLIST(Process) into :tProcessIDs from %SYS.ProcessQuery_SS() where "User" = '_Ensemble')
@@ -275,7 +276,7 @@ Method StartCoverageTracking() As %Status [ Private ]
 					set $LIST(tProcessIDs, *+1) = $Job
 				}
 			}
-			set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = tProcessIDs
+			// set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = tProcessIDs
 			Set tMetrics = $ListBuild("RtnLine") _ $Select(..Timing:$ListBuild("Time","TotalTime"),1:"")
 			$$$ThrowOnError(..Monitor.StartWithScope(tRelevantTargets,tMetrics,tProcessIDs))
 		}
