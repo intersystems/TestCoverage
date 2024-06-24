@@ -243,7 +243,8 @@ Method StartCoverageTracking() As %Status [ Private ]
 				}
 			}
 			Set tMetrics = $ListBuild("RtnLine") _ $Select(..Timing:$ListBuild("Time","TotalTime"),1:"")
-			$$$ThrowOnError(..Monitor.StartWithScope(tRelevantTargets,tMetrics,tProcessIDs))
+			set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = ..CoverageClasses
+			$$$ThrowOnError(..Monitor.StartWithScope(tRelevantTargets,tMetrics,tProcessIDs, ..CoverageClasses))
 		}
 	} Catch e { 
 		Set tSC = e.AsStatus()
@@ -441,6 +442,7 @@ Method EndCoverageTracking(pTestSuite As %String = "", pTestClass As %String = "
 		If (..CoverageTargets '= "") {
 			// Pause the monitor.
 			Set tSC = ..Monitor.Pause()
+			Do ##class(TestCoverage.Utils.LineByLineMonitor).PyStop()
 			If $$$ISERR(tSC) {
 				If $System.Status.GetErrorCodes(tSC) = $$$MonitorNotRunning {
 					// Not really an error, and nothing to do in this case.
@@ -762,4 +764,3 @@ ClassMethod GetURL(pRunID As %String, Output pHost As %String, Output pPath As %
 }
 
 }
-
