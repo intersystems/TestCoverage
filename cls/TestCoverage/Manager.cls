@@ -198,8 +198,10 @@ Method LogAssert(success, action, description, extra, args...)
 			set $LIST(tProcessIDs, *+1) = $Job
 		}
 		set ..ProcessIDs = tProcessIDs
-		set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = tProcessIDs
-		$$$ThrowOnError(..Monitor.StartWithScope(..LastRelevantTargets, ..LastMetrics, tProcessIDs))
+		set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = $lb("inside logassert", tProcessIDs)
+		$$$ThrowOnError(..EndCoverageTracking())
+		$$$ThrowOnError(..StartCoverageTracking())
+		// $$$ThrowOnError(..Monitor.StartWithScope(..LastRelevantTargets, ..LastMetrics, tProcessIDs))
 	}
 }
 
@@ -282,7 +284,7 @@ Method StartCoverageTracking() As %Status [ Private ]
 					set $LIST(tProcessIDs, *+1) = $Job
 				}
 			}
-			// set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = tProcessIDs
+			set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = tProcessIDs
 			Set tMetrics = $ListBuild("RtnLine") _ $Select(..Timing:$ListBuild("Time","TotalTime"),1:"")
 			Set ..LastRelevantTargets = tRelevantTargets
 			Set ..LastMetrics = tMetrics
