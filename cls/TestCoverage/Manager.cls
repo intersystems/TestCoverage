@@ -50,7 +50,13 @@ Property SourceNamespace As %String(MAXLEN = 255) [ Internal, Private ];
 
 Property ProcessIDs As %List [ Internal, Private ];
 
-Property InteroperabilityProcesses As %Boolean [ InitialExpression = 0, Internal, Private ];
+/// 0 means don't bother with interoperability processes, 1 means track interoperability processes
+Property InteroperabilityProcesses As %Integer [ InitialExpression = 0, Internal, Private ];
+
+/// these next two make it easier to start the monitor again with the same parameters
+Property LastRelevantTargets As %List [ Internal, Private ];
+
+Property LastMetrics As %List [ Internal, Private ];
 
 Property Run As TestCoverage.Data.Run;
 
@@ -180,9 +186,8 @@ Method CoverageTargetsSet(%value) As %Status [ Internal, Private ]
 
 Method LogAssert(success, action, description, extra, args...)
 {
-	set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = "We're in LogAssert"
 	do ##super(.success, .action, .description, .extra, args...)
-	if (..InteroperabilityProcesses) {
+	if (..InteroperabilityProcesses && (description = "StartProduction()")) {
 		// Collect the list of PIDs used by Interoperability processes in the current namespace
 		// Run unit tests collecting coverage in that specific list of processes (plus the current process)
 		&sql(select %DLIST(Process) into :tProcessIDs from %SYS.ProcessQuery_SS() where "User" = '_Ensemble')
@@ -194,6 +199,7 @@ Method LogAssert(success, action, description, extra, args...)
 		}
 		set ..ProcessIDs = tProcessIDs
 		set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = tProcessIDs
+		$$$ThrowOnError(..Monitor.StartWithScope(..LastRelevantTargets, ..LastMetrics, tProcessIDs))
 	}
 }
 
@@ -278,6 +284,8 @@ Method StartCoverageTracking() As %Status [ Private ]
 			}
 			// set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = tProcessIDs
 			Set tMetrics = $ListBuild("RtnLine") _ $Select(..Timing:$ListBuild("Time","TotalTime"),1:"")
+			Set ..LastRelevantTargets = tRelevantTargets
+			Set ..LastMetrics = tMetrics
 			$$$ThrowOnError(..Monitor.StartWithScope(tRelevantTargets,tMetrics,tProcessIDs))
 		}
 	} Catch e { 
