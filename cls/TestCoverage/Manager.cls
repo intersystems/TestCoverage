@@ -178,10 +178,10 @@ Method CoverageTargetsSet(%value) As %Status [ Internal, Private ]
 	Quit $$$OK
 }
 
-Method LogAssert(success, action, description, ByRef extra, location)
+Method LogAssert(success, action, description, ByRef extra, ByRef location)
 {
 	set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = "We're in LogAssert"
-	do ##super(success, action, description, .extra, location)
+	do ##super(success, action, description, .extra, .location)
 	if (..InteroperabilityProcesses) {
 		// Collect the list of PIDs used by Interoperability processes in the current namespace
 		// Run unit tests collecting coverage in that specific list of processes (plus the current process)
