@@ -181,6 +181,7 @@ Method CoverageTargetsSet(%value) As %Status [ Internal, Private ]
 Method LogAssert(success, action, description, ByRef extra, location)
 {
 	set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = "We're in LogAssert"
+	set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = $lb(success, action, description, extra, location)
 	do ##super(success, action, description, .extra, location)
 	if (..InteroperabilityProcesses) {
 		// Collect the list of PIDs used by Interoperability processes in the current namespace
