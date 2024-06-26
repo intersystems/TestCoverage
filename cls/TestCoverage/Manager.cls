@@ -179,21 +179,27 @@ Method CoverageTargetsSet(%value) As %Status [ Internal, Private ]
 	Quit $$$OK
 }
 
+/// Collect the list of PIDs used by Interoperability processes in the current namespace
+/// In order to run unit tests collecting coverage in that specific list of processes (plus the current process)
+Method GetInteropProcesses(Output tProcessIDs)
+{
+	&sql(select %DLIST(Process) into :tProcessIDs from %SYS.ProcessQuery_SS() where "User" = '_Ensemble' and Namespace = $Namespace)
+	If (SQLCODE < 0) {
+		Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
+	}
+	if ('$LISTFIND(tProcessIDs, $Job)) {
+		set $LIST(tProcessIDs, *+1) = $Job
+	}
+}
+
 /// Overriden LogAssert method because we want to be able to hook into the StartProduction() call in subclasses of %UnitTest.TestProduction
 /// in order to get the interoperability process list after the production has started 
 Method LogAssert(success, action, description, extra, args...)
 {
 	do ##super(.success, .action, .description, .extra, args...)
 	if (..InteroperabilityProcesses && (description = "StartProduction()")) {
-		// Collect the list of PIDs used by Interoperability processes in the current namespace
-		// Run unit tests collecting coverage in that specific list of processes (plus the current process)
-		&sql(select %DLIST(Process) into :tProcessIDs from %SYS.ProcessQuery_SS() where "User" = '_Ensemble' and Namespace = $Namespace)
-		If (SQLCODE < 0) {
-			Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
-		}
-		if ('$LISTFIND(tProcessIDs, $Job)) {
-			set $LIST(tProcessIDs, *+1) = $Job
-		}
+		
+		do GetInteropProcesses(.tProcessIDs)
 		set ..ProcessIDs = tProcessIDs
 		$$$ThrowOnError(..EndCoverageTracking())
 		$$$ThrowOnError(..StartCoverageTracking())
@@ -268,15 +274,7 @@ Method StartCoverageTracking() As %Status [ Private ]
 			}
 			ElseIf ($list(tProcessIDs, 1)="Interop")
 			{
-				// Collect the list of PIDs used by Interoperability processes in the current namespace
-				// Run unit tests collecting coverage in that specific list of processes (plus the current process)
-				&sql(select %DLIST(Process) into :tProcessIDs from %SYS.ProcessQuery_SS() where "User" = '_Ensemble' and Namespace = $Namespace)
-				If (SQLCODE < 0) {
-					Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
-				}
-				if ('$LISTFIND(tProcessIDs, $Job)) {
-					set $LIST(tProcessIDs, *+1) = $Job
-				}
+				do GetInteropProcesses(.tProcessIDs)
 			}
 			Set tMetrics = $ListBuild("RtnLine") _ $Select(..Timing:$ListBuild("Time","TotalTime"),1:"")
 			$$$ThrowOnError(..Monitor.StartWithScope(tRelevantTargets,tMetrics,tProcessIDs))
