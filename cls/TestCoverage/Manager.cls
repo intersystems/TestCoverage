@@ -53,11 +53,6 @@ Property ProcessIDs As %List [ Internal, Private ];
 /// 0 means don't bother with interoperability processes, 1 means track interoperability processes
 Property InteroperabilityProcesses As %Integer [ InitialExpression = 0, Internal, Private ];
 
-/// these next two make it easier to start the monitor again with the same parameters
-Property LastRelevantTargets As %List [ Internal, Private ];
-
-Property LastMetrics As %List [ Internal, Private ];
-
 Property Run As TestCoverage.Data.Run;
 
 /// Known coverage targets (already snapshotted). <br />
@@ -81,7 +76,7 @@ Property Monitor As TestCoverage.Utils.LineByLineMonitor [ InitialExpression = {
 /// Note that overall tracking is always available; more granular tracking requires more time and disk space.</li>
 /// <li><var>pLogIndex</var> (optional) allows for aggregation of code coverage results across unit test runs. To use this, get it back as output from the first test run, then pass it to the next.</li>
 /// <li><var>pSourceNamespace</var> (optional) specifies the namespace in which classes were compiled, defaulting to the current namespace. This may be required to retrieve some metadata.</li>
-/// <li><var>pPIDList</var> (optional) has a $ListBuild list of process IDs to monitor. If this is empty, all processes are monitored. By default, this is just the current process.</li>
+/// <li><var>pPIDList</var> (optional) has a $ListBuild list of process IDs to monitor. If this is empty, all processes are monitored. If this is $listbuild("Interop"), the current process and all interoperability processes are monitored. By default, this is just the current process.</li>
 /// <li><var>pTiming</var> (optional) may be set to 1 to also collect timing information per line.</li>
 /// </ul>
 /// Granular data is stored in <class>TestCoverage.Data.Coverage</class>; aggregated data is stored per class in <class>TestCoverage.Data.Aggregate.ByCodeUnit</class> and for the whole run in <class>TestCoverage.Data.Aggregate.ByRun</class>.
@@ -184,13 +179,15 @@ Method CoverageTargetsSet(%value) As %Status [ Internal, Private ]
 	Quit $$$OK
 }
 
+/// Overriden LogAssert method because we want to be able to hook into the StartProduction() call in subclasses of %UnitTest.TestProduction
+/// in order to get the interoperability process list after the production has started 
 Method LogAssert(success, action, description, extra, args...)
 {
 	do ##super(.success, .action, .description, .extra, args...)
 	if (..InteroperabilityProcesses && (description = "StartProduction()")) {
 		// Collect the list of PIDs used by Interoperability processes in the current namespace
 		// Run unit tests collecting coverage in that specific list of processes (plus the current process)
-		&sql(select %DLIST(Process) into :tProcessIDs from %SYS.ProcessQuery_SS() where "User" = '_Ensemble')
+		&sql(select %DLIST(Process) into :tProcessIDs from %SYS.ProcessQuery_SS() where "User" = '_Ensemble' and Namespace = $Namespace)
 		If (SQLCODE < 0) {
 			Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
 		}
@@ -198,10 +195,8 @@ Method LogAssert(success, action, description, extra, args...)
 			set $LIST(tProcessIDs, *+1) = $Job
 		}
 		set ..ProcessIDs = tProcessIDs
-		set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = $lb("inside logassert", tProcessIDs)
 		$$$ThrowOnError(..EndCoverageTracking())
 		$$$ThrowOnError(..StartCoverageTracking())
-		// $$$ThrowOnError(..Monitor.StartWithScope(..LastRelevantTargets, ..LastMetrics, tProcessIDs))
 	}
 }
 
@@ -273,10 +268,9 @@ Method StartCoverageTracking() As %Status [ Private ]
 			}
 			ElseIf ($list(tProcessIDs, 1)="Interop")
 			{
-				// set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = "ProcessIDs was still Interop" 
 				// Collect the list of PIDs used by Interoperability processes in the current namespace
 				// Run unit tests collecting coverage in that specific list of processes (plus the current process)
-				&sql(select %DLIST(Process) into :tProcessIDs from %SYS.ProcessQuery_SS() where "User" = '_Ensemble')
+				&sql(select %DLIST(Process) into :tProcessIDs from %SYS.ProcessQuery_SS() where "User" = '_Ensemble' and Namespace = $Namespace)
 				If (SQLCODE < 0) {
 					Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
 				}
@@ -284,10 +278,7 @@ Method StartCoverageTracking() As %Status [ Private ]
 					set $LIST(tProcessIDs, *+1) = $Job
 				}
 			}
-			set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = tProcessIDs
 			Set tMetrics = $ListBuild("RtnLine") _ $Select(..Timing:$ListBuild("Time","TotalTime"),1:"")
-			Set ..LastRelevantTargets = tRelevantTargets
-			Set ..LastMetrics = tMetrics
 			$$$ThrowOnError(..Monitor.StartWithScope(tRelevantTargets,tMetrics,tProcessIDs))
 		}
 	} Catch e { 
