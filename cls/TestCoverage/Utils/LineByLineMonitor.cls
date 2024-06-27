@@ -51,7 +51,7 @@ ClassMethod CheckAvailableMemory(pProcessCount As %Integer, pRoutineCount As %In
 	Quit tSC
 }
 
-ClassMethod PyStartWithScope(pCoverageClasses As %List, CoveredLines As %List) [ Language = python ]
+ClassMethod PyStartWithScope(pCoverageClasses As %List) [ Language = python ]
 {
 	# pass CoveredLines by reference 
 	
