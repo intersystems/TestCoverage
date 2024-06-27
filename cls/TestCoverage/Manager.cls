@@ -243,7 +243,6 @@ Method StartCoverageTracking() As %Status [ Private ]
 				}
 			}
 			Set tMetrics = $ListBuild("RtnLine") _ $Select(..Timing:$ListBuild("Time","TotalTime"),1:"")
-			set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = ..CoverageClasses
 			$$$ThrowOnError(..Monitor.StartWithScope(tRelevantTargets,tMetrics,tProcessIDs, ..CoverageClasses))
 		}
 	} Catch e { 

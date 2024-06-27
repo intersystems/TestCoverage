@@ -14,7 +14,7 @@ Index NameTypeHash On (Name, Type, Hash) [ Data = ExecutableLines, Unique ];
 /// Name of the code unit
 Property Name As %String(MAXLEN = 255) [ Required ];
 
-/// Type (3-letter extension) of the code unit
+/// Type (2 or 3-letter extension) of the code unit
 Property Type As TestCoverage.DataType.RoutineType [ Required ];
 
 /// Hash of the code unit; for methods for determining this, see <method>GetCurrentHash</method>
@@ -396,6 +396,10 @@ ClassMethod GetCurrentHash(pName As %String, pType As %String, Output pHash As %
 				// Skip header (lines 1-4) which, for .INT routines generated from classes,
 				// includes the class compilation signature.
 				Set pHash = ..HashArrayRange(.pCodeArray,5,pName_"."_pType,.tSizeHint)
+			} ElseIf (pType = "PY") {
+				Merge pCodeArray = ^ROUTINE(pName_".py",0)
+				set tSizeHint = ^ROUTINE(pName_".py",0,0)
+				set pHash = ..HashArrayRange(.pCodeArray, ,pName_".py", .pSizeHint)
 			} Else {
 				// Give standard descriptive error about the type being invalid.
 				$$$ThrowStatus(..TypeIsValid(pType))
@@ -492,4 +496,3 @@ Storage Default
 }
 
 }
-
