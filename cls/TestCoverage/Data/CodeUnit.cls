@@ -98,12 +98,22 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 		}
 		
 		Set $Namespace = pSourceNamespace
+
 		If (tType = "CLS") {
 			Do ##class(TestCoverage.Utils).GetClassLineExecutableFlags(tName,.tCodeArray,.tExecutableFlags)
-		} Else {
+		} ElseIf ((tType = "INT") || (tType = "MAC")) {
 			Do ##class(TestCoverage.Utils).GetRoutineLineExecutableFlags(.tCodeArray,.tExecutableFlags)
+		} ElseIf (tType="PY") {
+			Do ##class(TestCoverage.Utils).CodeArrayToList(.tCodeArray, .pDocumentText) 
+			Set tExecutableFlagsPyList = ##class(TestCoverage.Utils).GetPythonLineExecutableFlags(pDocumentText)
+			Kill tExecutableFlags
+			for i=1:1:tExecutableFlagsPyList."__len__()"-1 {
+				set tExecutableFlags(i) = tExecutableFlagsPyList."__getitem__"(i)
+			}
 		}
-		
+		Else {
+			return $$$ERROR($$$GeneralError,"File type not supported")
+		}
 		Set $Namespace = tOriginalNamespace
 		Set pCodeUnit = ..%New()
 		Set pCodeUnit.Name = tName

@@ -391,6 +391,77 @@ ClassMethod GetClassLineExecutableFlags(pClassName As %String, ByRef pDocumentTe
 	}
 }
 
+ClassMethod CodeArrayToList(ByRef pCodeArray, Output pDocumentText As %List)
+{
+	set pDocumentText = $lb()
+	for i=1:1:pCodeArray(0) {
+		set $list(pDocumentText, i) = pCodeArray(i)
+	}
+	quit
+}
+
+/// returns a python list with a 1 or 0 for subscript i indicating if line i is executable or not
+ClassMethod GetPythonLineExecutableFlags(pDocumentText) [ Language = python ]
+{
+	import iris
+	import ast 
+	source_lines = iris.cls('%SYS.Python').ToList(pDocumentText)
+	source_lines = [line + "\n" for line in source_lines]  # contains a list of each line of the source code
+	print(source_lines)
+	glob = iris.gref('IRIS.TEMPCG')
+
+	# create the abstract syntax tree for the code, and walk through it, getting each line of code in its context
+	source = ''.join(source_lines)
+	tree = ast.parse(source)
+	executable_lines = set() # stores the 1-indexed line numbers of the executable lines 
+
+	class ExecutableLineVisitor(ast.NodeVisitor):
+		def __init__(self):
+			self.function_depth = 0
+
+		def visit(self, node):
+			if hasattr(node, 'lineno'):
+				
+				# decorators for functions and class definitions are executable
+				if isinstance(node, (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef)):
+					decorators = [element.id for element in node.decorator_list]
+					num_decorators = len(decorators)
+					# print(f"{node.lineno=}")
+					for i, element in enumerate(decorators):
+						# print(f"{element=}")
+						conjectured_line = (node.lineno-1)-num_decorators+i # change this back if the line numbers aren't 0 indexed
+						# print(f"{source_lines[conjectured_line]=}")
+						if "@" + element in source_lines[conjectured_line]:
+							#print(f"added {element=}")
+							executable_lines.add(conjectured_line+1) # because back to 1-indexing
+					executable_lines.add(node.lineno)
+				elif isinstance(node, (ast.Call,
+										ast.Return, ast.Assign, ast.AugAssign, ast.AnnAssign,
+										ast.For, ast.AsyncFor, ast.While, ast.If, ast.With, 
+										ast.AsyncWith, ast.Raise, ast.Try, ast.Assert, 
+										ast.Import, ast.ImportFrom, ast.Pass, 
+										ast.Break, ast.Continue, ast.Delete, ast.Yield, 
+										ast.YieldFrom, ast.Await, ast.Nonlocal)): # all executable
+					executable_lines.add(node.lineno)
+				elif isinstance(node, ast.ExceptHandler): # except (but not finally) is executable
+					executable_lines.add(node.lineno) 
+				elif isinstance(node, ast.Expr) and not isinstance(node.value, ast.Constant): # expressions that aren't docstrings are executable
+					executable_lines.add(node.lineno)
+			self.generic_visit(node)
+	ExecutableLineVisitor().visit(tree)
+
+	output = [0] * (len(source_lines)+1)
+	for line in executable_lines:
+		output[line] = 1
+	output[1] = 0 # manually set the class definition to be not executable 
+	def print_executable_lines():
+		for i, line in enumerate(source_lines, start=1):
+			is_exec = output[i]
+			print(f"{i:2d} {'*' if is_exec else ' '} {line.rstrip()}")
+	print_executable_lines()
+	return output
+}
+
 /// For a routine (.MAC/.INT) with code in <var>pDocumentText</var> as an integer-subscripted array of lines,
 /// returns an array (<var>pExecutableFlags</var>) subscripted by line with boolean flags indicating whether the corresponding line is executable.
 ClassMethod GetRoutineLineExecutableFlags(ByRef pDocumentText, Output pExecutableFlags)
@@ -400,7 +471,6 @@ ClassMethod GetRoutineLineExecutableFlags(ByRef pDocumentText, Output pExecutabl
 	For tDocLine=1:1:$Get(pDocumentText) {
 		Do tSourceStream.WriteLine(pDocumentText(tDocLine))
 	}
-	
 	Set tSC = ##class(%Library.SyntaxColorReader).FromCode(tSourceStream,"COS","A",.tSCReader)
 	$$$ThrowOnError(tSC)
 	
@@ -540,4 +610,3 @@ ClassMethod LineByLineMonitorResultClose(ByRef qHandle As %Binary) As %Status [ 
 }
 
 }
-
