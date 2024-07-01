@@ -400,6 +400,54 @@ ClassMethod CodeArrayToList(ByRef pCodeArray, Output pDocumentText As %List)
 	quit
 }
 
+ClassMethod GetPythonMethodMapping(pDocumentText, ClassName) [ Language = python ]
+{
+	import iris
+	import ast 
+	source_lines = iris.cls('%SYS.Python').ToList(pDocumentText)
+	source_lines = [line + "\n" for line in source_lines]  # contains a list of each line of the source code
+
+	class_name = ClassName
+	source = ''.join(source_lines)
+	tree = ast.parse(source)
+	line_function_map = [None] * (len(source_lines)+2)
+	method_map = {}
+
+	class FunctionMapper(ast.NodeVisitor):
+		def __init__(self):
+			self.current_class = None
+			self.current_function = None
+			self.outermost_function = None
+
+		def visit_ClassDef(self, node):
+			prev_class = self.current_class
+			self.current_class = node.name
+			self.generic_visit(node)
+			self.current_class = prev_class
+
+		def visit_FunctionDef(self, node):
+			if self.outermost_function is None:
+				self.outermost_function = node.name
+				method_map[node.name] = (node.lineno-1, node.end_lineno-1)
+
+			self.current_function = node.name
+			for lineno in range(node.lineno, node.end_lineno + 1):
+				line_function_map[lineno-1] = self.outermost_function
+
+			self.generic_visit(node)
+			self.current_function = None
+			if self.outermost_function == node.name:
+				self.outermost_function = None
+
+	tree_with_line_numbers = ast.increment_lineno(tree, n=1)
+	for node in ast.walk(tree_with_line_numbers):
+		if isinstance(node, ast.FunctionDef):
+			node.end_lineno = node.body[-1].end_lineno
+
+	FunctionMapper().visit(tree)
+	return (line_function_map, method_map)
+}
+
 /// returns a python list with a 1 or 0 for subscript i indicating if line i is executable or not
 ClassMethod GetPythonLineExecutableFlags(pDocumentText) [ Language = python ]
 {
@@ -407,8 +455,6 @@ ClassMethod GetPythonLineExecutableFlags(pDocumentText) [ Language = python ]
 	import ast 
 	source_lines = iris.cls('%SYS.Python').ToList(pDocumentText)
 	source_lines = [line + "\n" for line in source_lines]  # contains a list of each line of the source code
-	print(source_lines)
-	glob = iris.gref('IRIS.TEMPCG')
 
 	# create the abstract syntax tree for the code, and walk through it, getting each line of code in its context
 	source = ''.join(source_lines)
@@ -426,13 +472,9 @@ ClassMethod GetPythonLineExecutableFlags(pDocumentText) [ Language = python ]
 				if isinstance(node, (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef)):
 					decorators = [element.id for element in node.decorator_list]
 					num_decorators = len(decorators)
-					# print(f"{node.lineno=}")
 					for i, element in enumerate(decorators):
-						# print(f"{element=}")
 						conjectured_line = (node.lineno-1)-num_decorators+i # change this back if the line numbers aren't 0 indexed
-						# print(f"{source_lines[conjectured_line]=}")
 						if "@" + element in source_lines[conjectured_line]:
-							#print(f"added {element=}")
 							executable_lines.add(conjectured_line+1) # because back to 1-indexing
 					executable_lines.add(node.lineno)
 				elif isinstance(node, (ast.Call,
@@ -458,7 +500,7 @@ ClassMethod GetPythonLineExecutableFlags(pDocumentText) [ Language = python ]
 		for i, line in enumerate(source_lines, start=1):
 			is_exec = output[i]
 			print(f"{i:2d} {'*' if is_exec else ' '} {line.rstrip()}")
-	print_executable_lines()
+	# print_executable_lines()
 	return output
 }
 

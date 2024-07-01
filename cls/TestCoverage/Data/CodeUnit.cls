@@ -28,6 +28,7 @@ Property ExecutableLines As TestCoverage.DataType.Bitstring;
 
 /// For classes, map of method names in the code to their associated line numbers
 /// For routines, map of labels to associated line numbers
+/// For python, map of method names to a $lb(starting line number, ending line number) 
 Property MethodMap As array Of %Integer;
 
 /// For classes, map of line numbers in code to associated method names
@@ -98,7 +99,7 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 		}
 		
 		Set $Namespace = pSourceNamespace
-
+		
 		If (tType = "CLS") {
 			Do ##class(TestCoverage.Utils).GetClassLineExecutableFlags(tName,.tCodeArray,.tExecutableFlags)
 		} ElseIf ((tType = "INT") || (tType = "MAC")) {
@@ -107,13 +108,14 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 			Do ##class(TestCoverage.Utils).CodeArrayToList(.tCodeArray, .pDocumentText) 
 			Set tExecutableFlagsPyList = ##class(TestCoverage.Utils).GetPythonLineExecutableFlags(pDocumentText)
 			Kill tExecutableFlags
-			for i=1:1:tExecutableFlagsPyList."__len__()"-1 {
+			for i=1:1:tExecutableFlagsPyList."__len__"()-1 {
 				set tExecutableFlags(i) = tExecutableFlagsPyList."__getitem__"(i)
 			}
 		}
 		Else {
 			return $$$ERROR($$$GeneralError,"File type not supported")
 		}
+		
 		Set $Namespace = tOriginalNamespace
 		Set pCodeUnit = ..%New()
 		Set pCodeUnit.Name = tName
@@ -130,45 +132,79 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 			Set pCodeUnit.Generated = ($$$comClassKeyGet(tName,$$$cCLASSgeneratedby) '= "")
 		}
 		
-		Set tMethod = ""
-		Set tMethodSignature = ""
-		Set tMethodMask = ""
-		For tLineNumber=1:1:$Get(tCodeArray,0) {
-			Set tLine = tCodeArray(tLineNumber)
-			Do pCodeUnit.Lines.Insert(tLine)
-			
-			If (tType = "CLS") {
-				// Extract line offset of methods in classes
-				Set tStart = $Piece(tLine," ")
-				If (tStart = "ClassMethod") || (tStart = "Method") {
-					Set tMethod = $Piece($Piece(tLine,"(")," ",2)
-					Set tMethodSignature = tLine
-					Do pCodeUnit.MethodMap.SetAt(tLineNumber,tMethod)
-					Do pCodeUnit.LineToMethodMap.SetAt(tMethod,tLineNumber)
-				} ElseIf ($Extract(tStart) = "{") {
-					// Ignore the opening bracket for a method.
-				} ElseIf ($Extract(tStart) = "}") && (tMethod '= "") {
-					// End of method. Add method subunit to class.
-					Set tSubUnit = ##class(TestCoverage.Data.CodeSubUnit.Method).%New()
-					Set tSubUnit.Name = tMethod
-					Set tSubUnit.DisplaySignature = tMethodSignature
-					Set tSubUnit.Mask = tMethodMask
-					Do pCodeUnit.SubUnits.Insert(tSubUnit)
-					Set tMethod = ""
-					Set tMethodSignature = ""
-					Set tMethodMask = ""
-				} ElseIf (tMethod '= "") {
-					Set $Bit(tMethodMask,tLineNumber) = 1
+		
+		If (tType = "PY") {
+			Set ClassName = $Piece(tName,".", *)
+			Set tMethodInfo = ##class(TestCoverage.Utils).GetPythonMethodMapping(pDocumentText, ClassName)
+			Set tLineToMethodInfo = tMethodInfo."__getitem__"(0)
+			Set tMethodMapInfo = tMethodInfo."__getitem__"(1)
+			for i=1:1:$listlength(pDocumentText) {
+				Set tMethod = tLineToMethodInfo."__getitem__"(i)
+				Do pCodeUnit.LineToMethodMap.SetAt(tMethod,i)
+			}
+			Set iterator = tMethodMapInfo."__iter__"()
+			for i=1:1:tMethodMapInfo."__len__"() {
+				Set tMethod = iterator."__next__"()
+				Set tStartEnd = tMethodMapInfo."__getitem__"(tMethod)
+				Set tStartLine = tStartEnd."__getitem__"(0)
+				Set tEndLine = tStartEnd."__getitem__"(1)
+				Do pCodeUnit.MethodMap.SetAt($lb(tStartLine, tEndLine),tMethod)
+
+				Set tMethodMask = ""
+				for j = tStartLine:1:tEndLine {
+					Set $Bit(tMethodMask,j) = 1
 				}
-			} Else {
-				// Extract line offset of labels in routines
-				If ($ZStrip($Extract(tLine),"*PWC") '= "") {
-					Set tLabel = $Piece($Piece(tLine," "),"(")
-					Do pCodeUnit.MethodMap.SetAt(tLineNumber,tLabel)
-					Do pCodeUnit.LineToMethodMap.SetAt(tLabel,tLineNumber)
+				Set tMethodSignature = $list(pDocumentText, tStartLine)
+				Set tSubUnit = ##class(TestCoverage.Data.CodeSubUnit.Method).%New()
+				Set tSubUnit.Name = tMethod
+				Set tSubUnit.DisplaySignature = tMethodSignature
+				Set tSubUnit.Mask = tMethodMask
+				Do pCodeUnit.SubUnits.Insert(tSubUnit)
+			}
+		}
+		Else {
+			Set tMethod = ""
+			Set tMethodSignature = ""
+			Set tMethodMask = ""
+			For tLineNumber=1:1:$Get(tCodeArray,0) {
+				Set tLine = tCodeArray(tLineNumber)
+				Do pCodeUnit.Lines.Insert(tLine)
+				
+				If (tType = "CLS") {
+					// Extract line offset of methods in classes
+					Set tStart = $Piece(tLine," ")
+					If (tStart = "ClassMethod") || (tStart = "Method") {
+						Set tMethod = $Piece($Piece(tLine,"(")," ",2)
+						Set tMethodSignature = tLine
+						Do pCodeUnit.MethodMap.SetAt(tLineNumber,tMethod)
+						Do pCodeUnit.LineToMethodMap.SetAt(tMethod,tLineNumber)
+					} ElseIf ($Extract(tStart) = "{") {
+						// Ignore the opening bracket for a method.
+					} ElseIf ($Extract(tStart) = "}") && (tMethod '= "") {
+						// End of method. Add method subunit to class.
+						Set tSubUnit = ##class(TestCoverage.Data.CodeSubUnit.Method).%New()
+						Set tSubUnit.Name = tMethod
+						Set tSubUnit.DisplaySignature = tMethodSignature
+						Set tSubUnit.Mask = tMethodMask
+						Do pCodeUnit.SubUnits.Insert(tSubUnit)
+						Set tMethod = ""
+						Set tMethodSignature = ""
+						Set tMethodMask = ""
+					} ElseIf (tMethod '= "") {
+						Set $Bit(tMethodMask,tLineNumber) = 1
+					}
+				} 
+				Else {
+					// Extract line offset of labels in routines
+					If ($ZStrip($Extract(tLine),"*PWC") '= "") {
+						Set tLabel = $Piece($Piece(tLine," "),"(")
+						Do pCodeUnit.MethodMap.SetAt(tLineNumber,tLabel)
+						Do pCodeUnit.LineToMethodMap.SetAt(tLabel,tLineNumber)
+					}
 				}
 			}
 		}
+		
 		
 		Set tSC = pCodeUnit.%Save()
 		If $$$ISERR(tSC) && $System.Status.Equals(tSC,$$$ERRORCODE($$$IDKeyNotUnique)) {
@@ -197,6 +233,7 @@ Method UpdateSourceMap(pSourceNamespace As %String, ByRef pCache) As %Status
 {
 	Set tSC = $$$OK
 	Try {
+		
 		// First, build local array (tMap) of all maps from the .INT file to other files.
 		If (..Type = "INT") {
 			For tLineNumber=1:1:..Lines.Count() {
@@ -232,6 +269,36 @@ Method UpdateSourceMap(pSourceNamespace As %String, ByRef pCache) As %Status
 					Set tLine2 = $ListGet(tData2,3)
 					Set tFullMap(tLineNumber) = $ListBuild("MAC",tRoutine,"",tLine1,tLine2)
 					Set tSourceUnits(tRoutine_".MAC") = ""
+				}
+			}
+		}
+		If (..Type = "PY") {
+			
+			set tClass = ..Name
+			Set tSourceUnits(tClass_".CLS") = ""
+			$$$ThrowOnError(..GetCurrentByName(tClass _ ".CLS", pSourceNamespace, .pCLSCodeUnit, .pCLSCache))
+			// we'll do the mappings from the .py to the .cls direction, so that we don't iterate over objectscript lines
+			Set tMethod = ""
+			Do ..MethodMap.GetNext(.tMethod)
+			while (tMethod '= "") 
+			{
+				Set tCLSMethodNum = pCLSCodeUnit.MethodMap.GetAt(tMethod)
+				Set $lb(tMethodStart, tMethodEnd) = ..MethodMap.GetAt(tMethod)
+				Set tMethodName = tMethod
+				Set tFullMap(tMethodStart) = $lb("CLS", tClass,tMethodName, -1, -1) ; -1 because the class 
+				; definition doesn't have the +1 offset from the { 
+
+				Do ..MethodMap.GetNext(.tMethod)
+				For i = tMethodStart+1:1:tMethodEnd {
+					Set tClassLineNum = i-tMethodStart
+					Set tFullMap(i) = $lb("CLS", tClass,tMethodName, tClassLineNum, tClassLineNum)
+
+					// extra check to make sure that the lines we're mapping between are the same as expected
+					Set tClassLineCode = $zstrip(pCLSCodeUnit.Lines.GetAt(tCLSMethodNum + tClassLineNum + 1), "<>W")
+					Set tPyLineCode = $zstrip(..Lines.GetAt(i), "<>W")
+					if (tPyLineCode '= tClassLineCode) {
+						Set tSC = $$$ERROR($$$GeneralError,"Compiled .py code doesn't match .CLS python code ")
+					}
 				}
 			}
 		}
@@ -280,7 +347,7 @@ Method UpdateSourceMap(pSourceNamespace As %String, ByRef pCache) As %Status
 			Set tCodeUnits(tCodeUnit.Type,tCodeUnit.Name) = tCodeUnit
 		}
 		
-		// Create CodeUnitMap data based on .INT->.CLS mapping.
+		// Create CodeUnitMap data based on .INT / .py ->.CLS mapping.
 		Set tFromHash = ..Hash
 		Set tLineNumber = ""
 		For {
