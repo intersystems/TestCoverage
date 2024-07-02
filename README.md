@@ -101,7 +101,7 @@ Where:
 * `tCoverageLevel` (optional) is 0 to track code coverage overall; 1 to track it per test suite (the default); 2 to track it per test class; 3 to track it per test method.
 * `tLogIndex` (optional) allows for aggregation of code coverage results across unit test runs. To use this, get it back as output from the first test run, then pass it to the next.
 * `tSourceNamespace` (optional) specifies the namespace in which classes were compiled, defaulting to the current namespace. This may be required to retrieve some metadata.
-* `tPIDList` (optional) has a $ListBuild list of process IDs to monitor. If this is empty, all processes are monitored. If this is $ListBuild("Interop"), all interoperability processes and the current process are monitored. By default, only the current process is monitored.
+* `tPIDList` (optional) has a $ListBuild list of process IDs to monitor. If this is empty, all processes are monitored. If this is $ListBuild("Interop") or "Interoperability", all interoperability processes and the current process are monitored. By default, only the current process is monitored.
 * `tTiming` (optional) is 1 to capture execution time data for monitored classes/routines as well, or 0 (the default) to not capture this data.
 
 ### Viewing Results
