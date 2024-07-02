@@ -53,12 +53,12 @@ ClassMethod CheckAvailableMemory(pProcessCount As %Integer, pRoutineCount As %In
 
 ClassMethod PyStartWithScope(pCoverageClasses As %List) [ Language = python ]
 {
-	# pass CoveredLines by reference 
 	
 	from sys import settrace 
 	import iris
+
 	tCoverageClasses = set(iris.cls('%SYS.Python').ToList(pCoverageClasses))
-	CoveredLines = []
+	#; glob = iris.gref('^IRIS.TEMPCG')
 	def my_tracer(frame, event, arg = None): 
 		# extracts frame code 
 		code = frame.f_code 
@@ -68,17 +68,77 @@ ClassMethod PyStartWithScope(pCoverageClasses As %List) [ Language = python ]
 		# extracts the line number 
 		line_no = frame.f_lineno 
 
-		#; if class_name in tCoverageClasses: # if this is in a covered class 
-		#; 	print(f"A {event} encountered in {func_name}() in class {class_name} at line number {line_no}") 
-		CoveredLines.append([line_no, func_name, class_name])
+		if class_name in tCoverageClasses: # if this is in a covered class 
+			print(f"A {event} encountered in {func_name}() in class {class_name} at line number {line_no}")
+			tGlob = iris.gref('^IRIS.TEMPCJG')
+			curId = tGlob.get([None])
+			if not curId:
+				tGlob[None] = 1
+				curId = 1
+			tGlob[curId, 1] = class_name
+			tGlob[curId, 2] = func_name
+			tGlob[curId, 3] = line_no
+			tGlob[None] = curId+1
+			#; iris.execute('set ^TestCovera3FF5.PyMonitorReC80BD($i(^TestCovera3FF5.PyMonitorReC80BD)) = $listbuild("", ^IRIS.TEMPCJG(1), ^IRIS.TEMPCJG(2),^IRIS.TEMPCJG(3) )')
+			
+			#; glob = iris.gref('^TestCovera3FF5.PyMonitorReC80BD')
+			#; id = glob.get([None])+1
+			
+			#; glob([None]) = id
+
+			#; new_line = iris.cls("TestCoverage.Data.PyMonitorResults")._New()
+			#; new_line.ClassName = class_name
+			#; new_line.FunctionName = func_name
+			#; new_line.LineNumber = line_no 
+			#; new_line._Save() 
+			
+			#; stmt = iris.sql.prepare("INSERT INTO TestCoverage_Data.PyMonitorResults (ClassName, FunctionName, LineNumber) VALUES (?, ?, ?)")
+			#; try:
+			#; 	rs = stmt.execute(class_name, func_name, line_no)
+			#; except Exception as ex:
+			#; 	print(ex.sqlcode, ex.message)
+			
+			# iris.cls("TestCoverage.Utils.LineByLineMonitor").DoNothing()
+			# iris.cls("TestCoverage.Utils.LineByLineMonitor").SavePyLine(line_no, func_name, class_name)
+			#; glob[0] = "we make it back"
 		return my_tracer
 	settrace(my_tracer)
+}
+
+ClassMethod PyClearCounters()
+{
+	Kill ^IRIS.TEMPCJG
+	#; &sql(
+	#; 	delete from TestCoverage_Data.PyMonitorResults
+	#; )
+	#; If (SQLCODE < 0) {
+	#; 	Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
+	#; }
+}
+
+ClassMethod DoNothing()
+{
+	set x = 1
+}
+
+ClassMethod SavePyLine(LineNumber As %Integer, FunctionName As %String, ClassName As %String)
+{
+	// set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = $lb(LineNumber, FunctionName, ClassName)
+	#; &sql(
+	#; 	INSERT INTO TestCoverage_Data.PyMonitorResults 
+	#; 	(ClassName, FunctionName, LineNumber) 
+	#; 	VALUES (:ClassName, :FunctionName, :LineNumber)
+	#; )
+	#; set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = $lb("after", SQLCODE)
+
+	#; If (SQLCODE < 0) {
+	#; 	Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
+	#; }
 }
 
 ClassMethod PyStop() [ Language = python ]
 {
 	from sys import settrace 
-		
 	settrace(None)
 }
 
@@ -98,6 +158,7 @@ Method StartWithScope(pRoutineList As %List, pMetricList As %List, pProcessList 
 		}
 		
 		If '..Started {
+			Do ..PyClearCounters()
 			Set tSC = ..Start(pRoutineList, pMetricList, pProcessList)
 			Do ..PyStartWithScope(pCoverageClasses)
 			If $System.Status.Equals(tSC,$$$ERRORCODE($$$MonitorMemoryAlloc)) {
