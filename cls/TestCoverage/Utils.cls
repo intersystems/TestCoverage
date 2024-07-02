@@ -78,7 +78,7 @@ ClassMethod GetTestCoverageTableList() As %List
 /// This is parallelized using <class>%SYSTEM.WorkMgr</class> for better performance. <br />
 /// <var>pRelevantRoutines</var> is a $ListBuild list of .INT routines that map back to a .CLS or .MAC
 /// routine with at least one executable line.
-ClassMethod Snapshot(pIntRoutines As %List, Output pRelevantRoutines As %List = "") As %Status
+ClassMethod Snapshot(pIntRoutines As %List, Output pRelevantRoutines As %List = "", Output pPyRelevantRoutines As %List = "") As %Status
 {
 	Set tSC = $$$OK
 	Try {
@@ -107,13 +107,30 @@ ClassMethod Snapshot(pIntRoutines As %List, Output pRelevantRoutines As %List = 
 				If $$$ISERR(tSC) {
 					Continue // Non-fatal. Just skip it.
 				}
-				If '$BitCount(tCodeUnit.ExecutableLines,1) {
+				Set tName = tCodeUnit.Name // should be the same as tOther without the .cls, but if I have it already why not
+				If ##class(TestCoverage.Manager).HasPython(tName) {
+					set pPyRelevantRoutines = pPyRelevantRoutines _ $ListBuild(tName)
+				} ElseIf '$BitCount(tCodeUnit.ExecutableLines,1) {
 					// Skip it - no executable lines.
 					Continue
 				}
 			}
+			
 			Set pRelevantRoutines = pRelevantRoutines _ $ListBuild(tIntRoutine)
 		}
+
+		// snapshot all the compiled python CodeUnits 
+		Set tSnapshotQueue = $System.WorkMgr.Initialize(,.tSC)
+		$$$ThrowOnError(tSC)
+		Set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = pPyRelevantRoutines
+		Set tPointer = 0
+		While $ListNext(pPyRelevantRoutines,tPointer,tPyRoutine) {
+			Set tSC = tSnapshotQueue.Queue("##class(TestCoverage.Data.CodeUnit).GetCurrentByName",tPyRoutine_".PY")
+			$$$ThrowOnError(tSC)
+		}
+		
+		Set tSC = tSnapshotQueue.WaitForComplete()
+		$$$ThrowOnError(tSC)
 		Write !
 	} Catch e {
 		Set tSC = e.AsStatus()

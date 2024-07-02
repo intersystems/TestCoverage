@@ -21,6 +21,9 @@ Method PausedGet() As %Boolean [ CodeMode = expression ]
 ..Started && '$zu(84,1)
 }
 
+/// The current python classes being tracked, so that we know what to store the coverage for
+Property PythonClassList As %List;
+
 Property LastRoutineList As %List [ Private ];
 
 Property LastMetricList As %List [ Private ];
@@ -132,10 +135,11 @@ ClassMethod PyStop() [ Language = python ]
 }
 
 /// Tracks current monitoring context and stops/starts or resets counters depending on whether it has changed
-Method StartWithScope(pRoutineList As %List, pMetricList As %List, pProcessList As %List, pCoverageClasses As %List) As %Status
+Method StartWithScope(pRoutineList As %List, pPyClasses As %List, pMetricList As %List, pProcessList As %List) As %Status
 {
 	Set tSC = $$$OK
 	Try {
+		Set ..PythonClassList = pPyClasses
 		Set tDifferentScope = (..LastRoutineList '= pRoutineList) || (..LastMetricList '= pMetricList) || (..LastProcessList '= pProcessList)
 		If tDifferentScope && ..Started {
 			// If we need to track different routines/metrics/processes, need to stop the monitor before restarting with the new context.
@@ -149,7 +153,7 @@ Method StartWithScope(pRoutineList As %List, pMetricList As %List, pProcessList 
 		If '..Started {
 			Do ..PyClearCounters()
 			Set tSC = ..Start(pRoutineList, pMetricList, pProcessList)
-			Do ..PyStartWithScope(pCoverageClasses)
+			Do ..PyStartWithScope(pPyClasses)
 			If $System.Status.Equals(tSC,$$$ERRORCODE($$$MonitorMemoryAlloc)) {
 				// Construct a more helpful error message.
 				Set tSC = $$$EMBEDSC(..CheckAvailableMemory($ListLength(pProcessList),$ListLength(pRoutineList),1),tSC)

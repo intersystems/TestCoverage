@@ -28,8 +28,11 @@ Property ExecutableLines As TestCoverage.DataType.Bitstring;
 
 /// For classes, map of method names in the code to their associated line numbers
 /// For routines, map of labels to associated line numbers
-/// For python, map of method names to a $lb(starting line number, ending line number) 
+/// For python, map of method names to associated starting line number
 Property MethodMap As array Of %Integer;
+
+/// Only for python: map of method names to associated ending line number of the method 
+Property MethodEndMap As array Of %Integer;
 
 /// For classes, map of line numbers in code to associated method names
 /// For routines, map of labels to associated line numbers
@@ -148,7 +151,8 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 				Set tStartEnd = tMethodMapInfo."__getitem__"(tMethod)
 				Set tStartLine = tStartEnd."__getitem__"(0)
 				Set tEndLine = tStartEnd."__getitem__"(1)
-				Do pCodeUnit.MethodMap.SetAt($lb(tStartLine, tEndLine),tMethod)
+				Do pCodeUnit.MethodMap.SetAt(tStartLine,tMethod)
+				Do pCodeUnit.MethodEndMap.SetAt(tEndLine, tMethod)
 
 				Set tMethodMask = ""
 				for j = tStartLine:1:tEndLine {
@@ -283,7 +287,8 @@ Method UpdateSourceMap(pSourceNamespace As %String, ByRef pCache) As %Status
 			while (tMethod '= "") 
 			{
 				Set tCLSMethodNum = pCLSCodeUnit.MethodMap.GetAt(tMethod)
-				Set $lb(tMethodStart, tMethodEnd) = ..MethodMap.GetAt(tMethod)
+				Set tMethodStart = ..MethodMap.GetAt(tMethod)
+				Set tMethodEnd = ..MethodEndMap.GetAt(tMethod)
 				Set tMethodName = tMethod
 				Set tFullMap(tMethodStart) = $lb("CLS", tClass,tMethodName, -1, -1) ; -1 because the class 
 				; definition doesn't have the +1 offset from the { 
@@ -558,6 +563,11 @@ Storage Default
 <Attribute>Lines</Attribute>
 <Structure>subnode</Structure>
 <Subscript>"Lines"</Subscript>
+</Data>
+<Data name="MethodEndMap">
+<Attribute>MethodEndMap</Attribute>
+<Structure>subnode</Structure>
+<Subscript>"MethodEndMap"</Subscript>
 </Data>
 <Data name="MethodMap">
 <Attribute>MethodMap</Attribute>

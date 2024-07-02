@@ -26,8 +26,11 @@ Property Timing As %Boolean [ InitialExpression = 0, Internal, Private ];
 /// Set to true (1) if coverage targets should be loaded dynamically from the unit test root.
 Property DynamicTargets As %Boolean [ InitialExpression = 1, Internal, Private ];
 
-/// Current list of targets (routines, classes, .int code, etc.) for line-by-line monitoring
+/// Current list of objectscript targets (routines, classes, .int code, etc.) for line-by-line monitoring
 Property CoverageTargets As %List [ Internal, Private ];
+
+/// Current list of compiled Python targets for line-by-line monitoring
+Property PyCoverageTargets As %List [ Internal, Private ];
 
 /// All classes considered at any point during this unit test run
 /// Top-level node has $ListBuild list; also has subscripts with individual class names for a quicker lookup
@@ -36,6 +39,10 @@ Property CoverageClasses As %List [ Internal, MultiDimensional, Private ];
 /// All routines considered at any point during this unit test run
 /// Top-level node has $ListBuild list; also has subscripts with individual routine names for a quicker lookup
 Property CoverageRoutines As %List [ Internal, MultiDimensional, Private ];
+
+/// All compiled python files considered at any point during this unit test run
+/// Top-level node has $ListBuild list; also has subscripts with individual routine names for a quicker lookup
+Property CoveragePythons As %List [ Internal, MultiDimensional, Private ];
 
 /// Last known coverage.list file
 Property LastCoverageListFile As %String(MAXLEN = "") [ Internal, Private ];
@@ -139,19 +146,32 @@ ClassMethod ArrayToList(pDynamicArray As %DynamicArray) As %List
 	Quit tList
 }
 
+/// write ##class(TestCoverage.Manager).HasPython("EP.sysSettrace")
+/// 1
+ClassMethod HasPython(pClassName As %String) As %Boolean
+{
+	return $data(^ROUTINE(pClassName _ ".py", 0, 0)) > 0
+}
+
+/// >write ##class(TestCoverage.Manager).HasPython("EP.sysSettrace")
 Method SetCoverageTargets(pClasses As %List = "", pRoutines As %List = "", pInit As %Boolean = 0) [ Private ]
 {
 	Set tList = "", tPtr = 0
+	Set tPyList = ""
 	While $ListNext(pClasses,tPtr,tClass) {
 		// Use a wildcard to include all .int files associated with the class.
 		Set tList = tList_$ListBuild(tClass_".CLS")
 		Do ..AddCoverageClass(tClass)
+		If (..HasPython(tClass)) {
+			set tPyList = tPyList _ $ListBuild(tClass)
+		}
 	}
 	While $ListNext(pRoutines,tPtr,tRoutine) {
 		Set tList = tList_$ListBuild(tRoutine_".MAC")
 		Do ..AddCoverageRoutine(tRoutine)
 	}
 	Set ..CoverageTargets = ..GetObjectCodeForSourceNames(tList)
+	Set ..PyCoverageTargets = tPyList 
 	If pInit {
 		// Set flag to determine code coverage dynamically.
 		Set ..DynamicTargets = (tList = "")
@@ -185,6 +205,7 @@ Method StartCoverageTracking() As %Status [ Private ]
 			Set $Namespace = ..SourceNamespace
 			
 			Set tRelevantTargets = ""
+			Set tPyRelevantTargets = ""
 			Set tNewTargets = ""
 			Set tPointer = 0
 			While $ListNext(..CoverageTargets,tPointer,tCoverageTarget) {
@@ -192,12 +213,20 @@ Method StartCoverageTracking() As %Status [ Private ]
 					Set tNewTargets = tNewTargets_$ListBuild(tCoverageTarget)
 				} ElseIf tIsRelevant {
 					Set tRelevantTargets = tRelevantTargets_$ListBuild(tCoverageTarget)
+					// check if the relevant old targets have python components
+					Set tOther = ##class(%Library.RoutineMgr).GetOther(tCoverageTarget,"INT",-1)
+					If (tOther '= "") && ($Piece(tOther,".",*) = "CLS") {
+						set tName = $piece(tOther, ".", 1, *-1)
+						If (..HasPython(tName)) {
+							set tPyRelevantTargets = tPyRelevantTargets _ $ListBuild(tName)
+						}
+					}
 				}
 			}
 			
 			If (tNewTargets '= "") {
 				$$$StartTimer("Taking snapshot of code and CLS/MAC/INT mappings")
-				Set tSC = ##class(TestCoverage.Utils).Snapshot(tNewTargets, .tNewRelevantTargets)
+				Set tSC = ##class(TestCoverage.Utils).Snapshot(tNewTargets, .tNewRelevantTargets, .tNewPyRelevantTargets)
 				$$$StopTimer
 				$$$ThrowOnError(tSC)
 			
@@ -210,6 +239,11 @@ Method StartCoverageTracking() As %Status [ Private ]
 				While $ListNext(tNewRelevantTargets,tPointer,tRelevantTarget) {
 					Set ..KnownCoverageTargets(tRelevantTarget) = 1
 					Set tRelevantTargets = tRelevantTargets_$ListBuild(tRelevantTarget)
+				}
+
+				Set tPointer = 0
+				While $ListNext(tNewPyRelevantTargets,tPointer,tPyRelevantTarget) {
+					Set tPyRelevantTargets = tPyRelevantTargets_$ListBuild(tPyRelevantTarget)
 				}
 			}
 			
@@ -243,7 +277,8 @@ Method StartCoverageTracking() As %Status [ Private ]
 				}
 			}
 			Set tMetrics = $ListBuild("RtnLine") _ $Select(..Timing:$ListBuild("Time","TotalTime"),1:"")
-			$$$ThrowOnError(..Monitor.StartWithScope(tRelevantTargets,tMetrics,tProcessIDs, ..CoverageClasses))
+			// Set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = tPyRelevantTargets
+			$$$ThrowOnError(..Monitor.StartWithScope(tRelevantTargets, tPyRelevantTargets, tMetrics,tProcessIDs))
 		}
 	} Catch e { 
 		Set tSC = e.AsStatus()
@@ -284,6 +319,7 @@ Method UpdateCoverageTargetsForTestDirectory(pDirectory As %String) As %Status [
 		
 		// If we found it, read in coverage list from there.
 		Set tCoverageTargetList = ""
+		Set tPyCoverageTargetList = ""
 		If (tListFile '= "") {
 			Do ..PrintLine("Tracking code coverage on resources listed in "_tListFile)
 			Do ..GetCoverageTargetsForFile(tListFile, .tCoverageTargets)
@@ -299,6 +335,9 @@ Method UpdateCoverageTargetsForTestDirectory(pDirectory As %String) As %Status [
 					
 					If (tType = "CLS") {
 						Do ..AddCoverageClass(tCoverageTargetKey)
+						If (..HasPython(tCoverageTargetKey)) {
+							Set tPyCoverageTargetList = $get(tPyCoverageTargetList) _ $ListBuild(tCoverageTargetKey)
+						}
 					} Else {
 						Do ..AddCoverageRoutine(tCoverageTargetKey)
 					}
@@ -308,6 +347,7 @@ Method UpdateCoverageTargetsForTestDirectory(pDirectory As %String) As %Status [
 		
 		Set tObjectCodeList = ..GetObjectCodeForSourceNames(tCoverageTargetList)
 		Set ..CoverageTargets = tObjectCodeList // Also restarts the monitor if it is running and updates data on covered routines/classes
+		Set ..PyCoverageTargets = tPyCoverageTargetList // no need to get the compiled names, it's already correct 
 	} Catch e {
 		Set tSC = e.AsStatus()
 	}
@@ -319,6 +359,10 @@ Method AddCoverageClass(pClassName As %Dictionary.CacheClassname) [ Private ]
 	If '$Data(..CoverageClasses(pClassName)) {
 		Set ..CoverageClasses = $Get(..CoverageClasses) _ $ListBuild(pClassName)
 		Set ..CoverageClasses(pClassName) = ""
+		If (..HasPython(pClassName)) {
+			Set ..CoveragePythons = $Get(..CoveragePythons) _ $ListBuild(pClassName)
+			Set ..CoveragePythons(pClassName) = ""
+		}
 	}
 }
 
@@ -430,7 +474,7 @@ Method GetObjectCodeForSourceNames(pSourceNameList As %List) As %List [ Private 
 		While $ListNext(tOthers,tOtherPointer,tOtherName) {
 			Set tOutputNameList = tOutputNameList_$ListBuild($Piece(tOtherName,".",1,*-1))
 		}
-	}
+}
 	Quit tOutputNameList
 }
 
@@ -472,10 +516,18 @@ Method EndCoverageTracking(pTestSuite As %String = "", pTestClass As %String = "
 			Set tRtnCount = ..Monitor.GetRoutineCount()
 			For i=1:1:tRtnCount {
 				Set tRtnName = ..Monitor.GetRoutineName(i)
-				Set tSC = ##class(TestCoverage.Data.Coverage).StoreIntCoverage(tTestIndex,tTarget,tRtnName,.tCache)
+				Set tSC = ##class(TestCoverage.Data.Coverage).StoreIntCoverage(tTestIndex,tTarget,tRtnName,"INT",.tCache)
+				$$$ThrowOnError(tSC)
+			}
+
+			Set tPyClasses = ..Monitor.PythonClassList
+			Set tPointer = 0
+			While $ListNext(tPyClasses, tPointer, tClass) {
+				Set tSC = ##class(TestCoverage.Data.Coverage).StoreIntCoverage(tTestIndex,tTarget,tClass,"PY",.tCache)
 				$$$ThrowOnError(tSC)
 			}
 			Merge ..Hashes = tCache
+
 			$$$StopTimer
 		}
 	} Catch e {
