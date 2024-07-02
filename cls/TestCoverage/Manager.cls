@@ -76,7 +76,7 @@ Property Monitor As TestCoverage.Utils.LineByLineMonitor [ InitialExpression = {
 /// Note that overall tracking is always available; more granular tracking requires more time and disk space.</li>
 /// <li><var>pLogIndex</var> (optional) allows for aggregation of code coverage results across unit test runs. To use this, get it back as output from the first test run, then pass it to the next.</li>
 /// <li><var>pSourceNamespace</var> (optional) specifies the namespace in which classes were compiled, defaulting to the current namespace. This may be required to retrieve some metadata.</li>
-/// <li><var>pPIDList</var> (optional) has a $ListBuild list of process IDs to monitor. If this is empty, all processes are monitored. If this is $listbuild("Interop"), the current process and all interoperability processes are monitored. By default, this is just the current process.</li>
+/// <li><var>pPIDList</var> (optional) has a $ListBuild list of process IDs to monitor. If this is empty, all processes are monitored. If this is $listbuild("Interop") or "Interoperability", the current process and all interoperability processes are monitored. By default, this is just the current process.</li>
 /// <li><var>pTiming</var> (optional) may be set to 1 to also collect timing information per line.</li>
 /// </ul>
 /// Granular data is stored in <class>TestCoverage.Data.Coverage</class>; aggregated data is stored per class in <class>TestCoverage.Data.Aggregate.ByCodeUnit</class> and for the whole run in <class>TestCoverage.Data.Aggregate.ByRun</class>.
@@ -213,7 +213,6 @@ Method StartCoverageTracking() As %Status [ Private ]
 	Try {
 		If (..CoverageTargets '= "") {
 			Set $Namespace = ..SourceNamespace
-			
 			Set tRelevantTargets = ""
 			Set tNewTargets = ""
 			Set tPointer = 0
@@ -272,7 +271,7 @@ Method StartCoverageTracking() As %Status [ Private ]
 					}
 				}
 			}
-			ElseIf ($list(tProcessIDs, 1)="Interop")
+			ElseIf (..InteroperabilityProcesses)
 			{
 				do GetInteropProcesses(.tProcessIDs)
 			}
@@ -568,9 +567,13 @@ ClassMethod OnBeforeAllTests(manager As TestCoverage.Manager, dir As %String, By
 		Set tProcessIDs = $Get(userparam("ProcessIDs"),$ListBuild($Job))
 		If (tProcessIDs = "*") {
 			Set tProcessIDs = ""
-		} ElseIf (tProcessIDs = "") || '$ListValid(tProcessIDs) {
+		} ElseIf ((tProcessIDs = "Interoperability") || (tProcessIDs = "interoperability")) {
+			Set manager.InteroperabilityProcesses = 1
+			Set tProcessIDs = $lb("Interop")
+		}
+		ElseIf (tProcessIDs = "") || '$ListValid(tProcessIDs) {
 			Set tProcessIDs = $ListBuild($Job)
-		} ElseIf ($list(tProcessIDs, 1)="Interop") {
+		} ElseIf (($list(tProcessIDs, 1)="Interop") || ($list(tProcessIDs, 1)="interop") ) {
 			Set manager.InteroperabilityProcesses = 1
 		}
 		Set tTiming = $Get(userparam("Timing"),0)
