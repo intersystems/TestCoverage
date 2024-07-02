@@ -58,7 +58,6 @@ ClassMethod PyStartWithScope(pCoverageClasses As %List) [ Language = python ]
 	import iris
 
 	tCoverageClasses = set(iris.cls('%SYS.Python').ToList(pCoverageClasses))
-	#; glob = iris.gref('^IRIS.TEMPCG')
 	def my_tracer(frame, event, arg = None): 
 		# extracts frame code 
 		code = frame.f_code 
@@ -67,25 +66,17 @@ ClassMethod PyStartWithScope(pCoverageClasses As %List) [ Language = python ]
 		class_name = frame.f_globals['__name__']
 		# extracts the line number 
 		line_no = frame.f_lineno 
-
-		if class_name in tCoverageClasses: # if this is in a covered class 
-			print(f"A {event} encountered in {func_name}() in class {class_name} at line number {line_no}")
+		if class_name in tCoverageClasses and line_no != 1: # if this is in a covered class 
+			# print(f"A {event} encountered in {func_name}() in class {class_name} at line number {line_no}")
 			tGlob = iris.gref('^IRIS.TEMPCJG')
-			curId = tGlob.get([None])
+			curId = tGlob.get([class_name])
 			if not curId:
-				tGlob[None] = 1
+				tGlob[class_name] = 1
 				curId = 1
-			tGlob[curId, 1] = class_name
-			tGlob[curId, 2] = func_name
-			tGlob[curId, 3] = line_no
-			tGlob[None] = curId+1
+			tGlob[class_name, curId] = line_no
+			tGlob[class_name] = curId+1
 			#; iris.execute('set ^TestCovera3FF5.PyMonitorReC80BD($i(^TestCovera3FF5.PyMonitorReC80BD)) = $listbuild("", ^IRIS.TEMPCJG(1), ^IRIS.TEMPCJG(2),^IRIS.TEMPCJG(3) )')
 			
-			#; glob = iris.gref('^TestCovera3FF5.PyMonitorReC80BD')
-			#; id = glob.get([None])+1
-			
-			#; glob([None]) = id
-
 			#; new_line = iris.cls("TestCoverage.Data.PyMonitorResults")._New()
 			#; new_line.ClassName = class_name
 			#; new_line.FunctionName = func_name
@@ -123,13 +114,11 @@ ClassMethod DoNothing()
 
 ClassMethod SavePyLine(LineNumber As %Integer, FunctionName As %String, ClassName As %String)
 {
-	// set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = $lb(LineNumber, FunctionName, ClassName)
 	#; &sql(
 	#; 	INSERT INTO TestCoverage_Data.PyMonitorResults 
 	#; 	(ClassName, FunctionName, LineNumber) 
 	#; 	VALUES (:ClassName, :FunctionName, :LineNumber)
 	#; )
-	#; set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = $lb("after", SQLCODE)
 
 	#; If (SQLCODE < 0) {
 	#; 	Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)

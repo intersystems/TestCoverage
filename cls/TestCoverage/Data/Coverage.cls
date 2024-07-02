@@ -50,12 +50,13 @@ Property Time As array Of TestCoverage.DataType.Timing [ SqlFieldName = _TIME ];
 /// List of "TotalTime" measurements from line-by-line monitor, subscripted by line number
 Property TotalTime As array Of TestCoverage.DataType.Timing;
 
-ClassMethod StoreIntCoverage(pRun As %Integer, pTestPath As %String, pRoutineName As %String, ByRef pCache) As %Status
+ClassMethod StoreIntCoverage(pRun As %Integer, pTestPath As %String, pName As %String, pType As %String, ByRef pCache) As %Status
 {
+	// pType must be either INT or PY 
 	Set tSC = $$$OK
 	Try {
 		#dim tResult As %SQL.StatementResult
-		Set tSC = ##class(TestCoverage.Data.CodeUnit).GetCurrentByName(pRoutineName_".INT",,.tCodeUnit,.pCache)
+		Set tSC = ##class(TestCoverage.Data.CodeUnit).GetCurrentByName(pName_"."_pType,,.tCodeUnit,.pCache)
 		$$$ThrowOnError(tSC)
 		
 		If ..UniqueCoverageDataExists(pRun,tCodeUnit.Hash,pTestPath,.tID) {
@@ -70,33 +71,44 @@ ClassMethod StoreIntCoverage(pRun As %Integer, pTestPath As %String, pRoutineNam
 		}
 		
 		Set tCoveredLines = tInstance.CoveredLines
-		
-		Set tAvailableMetrics = ..GetAvailableMetrics()
-		Set tPointer = 0
-		While $ListNext(tAvailableMetrics,tPointer,tMetricKey) {
-			If tInstance.Run.Metrics.Find(tMetricKey) {
-				Set tMetrics(tMetricKey) = $Property(tInstance,tMetricKey)
-			}
-		}
-		
-		// ROWSPEC = "LineNumber:%Integer,LineCovered:%Boolean,RtnLine:%Integer,Time:%Numeric,TotalTime:%Numeric"
-		Set tResult = ##class(TestCoverage.Utils).LineByLineMonitorResultFunc(pRoutineName)
-		While tResult.%Next(.tSC) {
-			$$$ThrowOnError(tSC)
-			Set tLineNumber = tResult.%Get("LineNumber")
-			If tResult.%Get("LineCovered") {
-				Set $Bit(tCoveredLines,tLineNumber) = 1
-			}
-			Set tMetricKey = ""
-			For {
-				Set tMetricKey = $Order(tMetrics(tMetricKey),1,tMetric)
-				If (tMetricKey = "") {
-					Quit
+		if (pType = "INT")
+		{
+			Set tAvailableMetrics = ..GetAvailableMetrics()
+			Set tPointer = 0
+			While $ListNext(tAvailableMetrics,tPointer,tMetricKey) {
+				If tInstance.Run.Metrics.Find(tMetricKey) {
+					Set tMetrics(tMetricKey) = $Property(tInstance,tMetricKey)
 				}
-				Do tMetric.SetAt(tResult.%Get(tMetricKey) + tMetric.GetAt(tLineNumber),tLineNumber)
 			}
+			// ROWSPEC = "LineNumber:%Integer,LineCovered:%Boolean,RtnLine:%Integer,Time:%Numeric,TotalTime:%Numeric"
+			Set tResult = ##class(TestCoverage.Utils).LineByLineMonitorResultFunc(pName)
+			While tResult.%Next(.tSC) {
+				$$$ThrowOnError(tSC)
+				Set tLineNumber = tResult.%Get("LineNumber")
+				If tResult.%Get("LineCovered") {
+					Set $Bit(tCoveredLines,tLineNumber) = 1
+				}
+				Set tMetricKey = ""
+				For {
+					Set tMetricKey = $Order(tMetrics(tMetricKey),1,tMetric)
+					If (tMetricKey = "") {
+						Quit
+					}
+					Do tMetric.SetAt(tResult.%Get(tMetricKey) + tMetric.GetAt(tLineNumber),tLineNumber)
+				}
+			}
+			$$$ThrowOnError(tSC)
 		}
-		$$$ThrowOnError(tSC)
+		Else { // If pType = "PY"
+			//^IRIS.TEMPCJG(148,1)="EP.sysSettrace", ^IRIS.TEMPCJG(148,2)="fun_generator", ^IRIS.TEMPCJG(148,3)=120
+			if $Data(^IRIS.TEMPCJG(pName)) {
+				for i = 1:1:(^IRIS.TEMPCJG(pName)-1) {
+					Set tLineNumber = ^IRIS.TEMPCJG(pName, i)
+					Set $Bit(tCoveredLines, tLineNumber) = 1
+				}
+			}
+			
+		}
 		
 		Set tInstance.CoveredLines = $BitLogic(tInstance.CoveredLines|tCoveredLines)
 		
@@ -167,4 +179,3 @@ Storage Default
 }
 
 }
-
