@@ -82,6 +82,12 @@ ClassMethod Snapshot(pIntRoutines As %List, Output pRelevantRoutines As %List = 
 {
 	Set tSC = $$$OK
 	Try {
+		// For debugging use only: no parallelization
+		#; Set tPointer = 0
+		#; While $ListNext(pIntRoutines, tPointer, tIntRoutine) {
+		#; 	do ##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tIntRoutine_".INT")
+		#; }
+
 		#dim tSnapshotQueue As %SYSTEM.WorkMgr
 		Set tSnapshotQueue = $System.WorkMgr.Initialize(,.tSC)
 		$$$ThrowOnError(tSC)
@@ -94,7 +100,8 @@ ClassMethod Snapshot(pIntRoutines As %List, Output pRelevantRoutines As %List = 
 		
 		Set tSC = tSnapshotQueue.WaitForComplete()
 		$$$ThrowOnError(tSC)
-		
+
+
 		// See which routines are actually relevant (one or more lines mapping back to a class with 1 or more executable lines)
 		// There's no point in optimizing out .MAC routines; they'll always have code
 		Set tPointer = 0
@@ -102,6 +109,7 @@ ClassMethod Snapshot(pIntRoutines As %List, Output pRelevantRoutines As %List = 
 			Set tOther = ##class(%Library.RoutineMgr).GetOther(tIntRoutine,"INT",-1)
 			If (tOther '= "") && ($Piece(tOther,".",*) = "CLS") {
 				// With the code already cached, this will be faster.
+				// This also snapshots the compiled python routine with it if there is one
 				#dim tCodeUnit As TestCoverage.Data.CodeUnit
 				Set tSC = ##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tOther,,.tCodeUnit)
 				If $$$ISERR(tSC) {
@@ -110,6 +118,13 @@ ClassMethod Snapshot(pIntRoutines As %List, Output pRelevantRoutines As %List = 
 				Set tName = tCodeUnit.Name // should be the same as tOther without the .cls, but if I have it already why not
 				If ##class(TestCoverage.Manager).HasPython(tName) {
 					set pPyRelevantRoutines = pPyRelevantRoutines _ $ListBuild(tName)
+					// take a snapshot of the compiled python file 
+					$$$ThrowOnError(##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tName_".PY",,.tPyCodeUnit))
+
+					// update the executable lines for the .cls file's python
+					set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = "Calling update executable lines on " _ tName 
+					$$$ThrowOnError(tCodeUnit.UpdatePyExecutableLines(tName, .tPyCodeUnit))
+					
 				} ElseIf '$BitCount(tCodeUnit.ExecutableLines,1) {
 					// Skip it - no executable lines.
 					Continue
@@ -119,17 +134,30 @@ ClassMethod Snapshot(pIntRoutines As %List, Output pRelevantRoutines As %List = 
 			Set pRelevantRoutines = pRelevantRoutines _ $ListBuild(tIntRoutine)
 		}
 
-		// snapshot all the compiled python CodeUnits 
-		Set tSnapshotQueue = $System.WorkMgr.Initialize(,.tSC)
-		$$$ThrowOnError(tSC)
-		Set tPointer = 0
-		While $ListNext(pPyRelevantRoutines,tPointer,tPyRoutine) {
-			Set tSC = tSnapshotQueue.Queue("##class(TestCoverage.Data.CodeUnit).GetCurrentByName",tPyRoutine_".PY")
-			$$$ThrowOnError(tSC)
-		}
+		// snapshot all the compiled python CodeUnits
+		#; Set tSnapshotQueue = $System.WorkMgr.Initialize(,.tSC)
+		#; $$$ThrowOnError(tSC)
+		#; Set tPointer = 0
+		#; While $ListNext(pPyRelevantRoutines,tPointer,tPyRoutine) {
+		#; 	Set tSC = tSnapshotQueue.Queue("##class(TestCoverage.Data.CodeUnit).GetCurrentByName",tPyRoutine_".PY")
+		#; 	$$$ThrowOnError(tSC)
+		#; }
 		
-		Set tSC = tSnapshotQueue.WaitForComplete()
-		$$$ThrowOnError(tSC)
+		#; Set tSC = tSnapshotQueue.WaitForComplete()
+		#; $$$ThrowOnError(tSC)
+
+		// update the executable lines for the .cls files that have python -- TODO: make the UpdatePyExecutableLines method not rely on knowing the .cls and .py CodeUnits beforehand
+		#; Set tSnapshotQueue = $System.WorkMgr.Initialize(,.tSC)
+		#; $$$ThrowOnError(tSC)
+		#; Set tPointer = 0
+		#; While $ListNext(pPyRelevantRoutines,tPointer,tClass) {
+		#; 	Set tSC = tSnapshotQueue.Queue("##class(TestCoverage.Data.CodeUnit).UpdatePyExecutableLines",tClass)
+		#; 	$$$ThrowOnError(tSC)
+		#; }
+		
+		#; Set tSC = tSnapshotQueue.WaitForComplete()
+		#; $$$ThrowOnError(tSC)
+
 		Write !
 	} Catch e {
 		Set tSC = e.AsStatus()

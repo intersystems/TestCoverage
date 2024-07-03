@@ -233,6 +233,77 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 	Quit tSC
 }
 
+/// Get the executable lines of code in python over to the .cls CodeUnit
+Method UpdatePyExecutableLines(pName As %String, ByRef pPyCodeUnit) As %Status
+{
+	Set tSC = $$$OK
+	Set tOriginalNamespace = $Namespace
+	Set tInitTLevel = $TLevel
+	Try {
+		TSTART
+		
+		Set tBitString = ""
+		If (##class(TestCoverage.Manager).HasPython(pName)) {
+			
+			// snapshot the Python CodeUnit for it 
+			Set tFromHash = pPyCodeUnit.Hash
+			Set tToHash = ..Hash 
+			// now bring over the executable lines 
+			
+			&sql(
+				DECLARE C1 CURSOR FOR
+				SELECT map.ToLine
+				INTO :hToLine
+				FROM TestCoverage_Data.CodeUnitMap map 
+				JOIN TestCoverage_Data.CodeUnit fromCodeUnit 
+				ON map.FromHash = fromCodeUnit.Hash 
+				JOIN TestCoverage_Data.CodeUnit toCodeUnit 
+				ON map.ToHash = toCodeUnit.Hash 
+				AND fromCodeUnit.Hash = :tFromHash
+				AND toCodeUnit.Hash = :tToHash
+				WHERE TestCoverage.BIT_VALUE(fromCodeUnit.ExecutableLines,map.FromLine) <> 0
+				)
+			&sql(OPEN C1)
+			If (SQLCODE < 0) {
+				Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
+			}
+			For {
+				&SQL(FETCH C1)
+				If (SQLCODE < 0) {
+					Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
+				} ElseIf (SQLCODE) {
+					Quit
+				}
+				// Process the fetched rows
+				// hToLine contains the line number in the .cls file corresponding to executable lines in the .py file
+				Set $Bit(tBitString, hToLine) = 1
+			}
+			&sql(CLOSE C1)
+			If (SQLCODE < 0) {
+				Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
+			}
+		}
+		if (pName = "TestCoverage.Utils") {
+			set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = tBitString
+			set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = ..ExecutableLines
+		}
+		Set ..ExecutableLines = $BITLOGIC(..ExecutableLines | tBitString)
+		Set tSC = ..%Save()
+		$$$ThrowOnError(tSC)
+		if (pName = "TestCoverage.Utils") {
+			set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = ..ExecutableLines
+		}
+		TCOMMIT
+	} Catch e {
+		Set pCodeUnit = $$$NULLOREF
+		Set tSC = e.AsStatus()
+	}
+	While ($TLevel > tInitTLevel) {
+		TROLLBACK 1
+	}
+	Quit tSC
+}
+
 Method UpdateSourceMap(pSourceNamespace As %String, ByRef pCache) As %Status
 {
 	Set tSC = $$$OK
