@@ -153,7 +153,6 @@ ClassMethod HasPython(pClassName As %String) As %Boolean
 	return $data(^ROUTINE(pClassName _ ".py", 0, 0)) > 0
 }
 
-/// >write ##class(TestCoverage.Manager).HasPython("EP.sysSettrace")
 Method SetCoverageTargets(pClasses As %List = "", pRoutines As %List = "", pInit As %Boolean = 0) [ Private ]
 {
 	Set tList = "", tPtr = 0
@@ -277,7 +276,6 @@ Method StartCoverageTracking() As %Status [ Private ]
 				}
 			}
 			Set tMetrics = $ListBuild("RtnLine") _ $Select(..Timing:$ListBuild("Time","TotalTime"),1:"")
-			// Set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = tPyRelevantTargets
 			$$$ThrowOnError(..Monitor.StartWithScope(tRelevantTargets, tPyRelevantTargets, tMetrics,tProcessIDs))
 		}
 	} Catch e { 

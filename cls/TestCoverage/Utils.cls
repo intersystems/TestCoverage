@@ -122,7 +122,6 @@ ClassMethod Snapshot(pIntRoutines As %List, Output pRelevantRoutines As %List = 
 		// snapshot all the compiled python CodeUnits 
 		Set tSnapshotQueue = $System.WorkMgr.Initialize(,.tSC)
 		$$$ThrowOnError(tSC)
-		Set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = pPyRelevantRoutines
 		Set tPointer = 0
 		While $ListNext(pPyRelevantRoutines,tPointer,tPyRoutine) {
 			Set tSC = tSnapshotQueue.Queue("##class(TestCoverage.Data.CodeUnit).GetCurrentByName",tPyRoutine_".PY")
