@@ -1,32 +1,18 @@
-name: Export XML and Release on Tag Push
+name: Release
 
 on:
   push:
     tags:
-      - '*'
+      - 'v[0-9]+.[0-9]+.[0-9]+'  # force semantic versioning
 
 jobs:
-  build:
+  build-and-release:
     runs-on: ubuntu-latest
 
     env:
-      # ** FOR GENERAL USE, LIKELY NEED TO CHANGE: **
-      package: TestCoverage
       container_image: intersystemsdc/iris-community:latest
-      
-      # ** FOR GENERAL USE, MAY NEED TO CHANGE: **
-      build_flags: -dev -verbose # Load in -dev mode to get unit test code preloaded
-      test_package: UnitTest
-      
-      # ** FOR GENERAL USE, SHOULD NOT NEED TO CHANGE: **
       instance: iris
-      # Note: test_reports value is duplicated in test_flags environment variable
       test_reports: test-reports
-      test_flags: >-
-       -verbose -DUnitTest.ManagerClass=TestCoverage.Manager -DUnitTest.JUnitOutput=/test-reports/junit.xml
-       -DUnitTest.FailuresAreFatal=1 -DUnitTest.Manager=TestCoverage.Manager
-       -DUnitTest.UserParam.CoverageReportClass=TestCoverage.Report.Cobertura.ReportGenerator
-       -DUnitTest.UserParam.CoverageReportFile=/source/coverage.xml
 
     steps:
       - name: Checkout code
@@ -51,16 +37,12 @@ jobs:
           # Workaround for permissions issues in TestCoverage (creating directory for source export)
           chmod 777 $GITHUB_WORKSPACE
 
-      - name: Get latest tag
-        id: tag
-        uses: actions-ecosystem/action-get-latest-tag@v1
-
       - name: Export XML
         run: |
           # Pick the targets to export as XML
           echo 'set list("TestCoverage.*.cls") = ""' >> export
           echo 'set list("TestCoverage.inc") = ""' >> export
-          echo 'do $System.OBJ.Export(.list,"/source/TestCoverage-${{ steps.tag.outputs.tag }}.xml","/exportversion=2017.2")' >> export
+          echo 'do $System.OBJ.Export(.list,"/source/TestCoverage-${{ github.ref_name }}.xml","/exportversion=2017.2")' >> export
           docker exec --interactive $instance iris session $instance -B < export
 
       - name: Create Release
@@ -69,9 +51,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: TestCoverage-${{ steps.tag.outputs.tag }}.xml
-          tag_name: ${{ github.ref }}
-          name: ${{ steps.tag.outputs.tag }}
+          files: TestCoverage-${{ github.ref_name }}.xml
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
           body: |
             Automated release created by [action-gh-release](https://github.com/softprops/action-gh-release).
           draft: false
