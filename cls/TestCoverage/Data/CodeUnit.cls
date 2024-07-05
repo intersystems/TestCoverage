@@ -125,11 +125,7 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 		Set pCodeUnit.Type = tType
 		Set pCodeUnit.Hash = tHash
 		
-		Set tBitString = ""
-		For tLine=1:1:$Get(tCodeArray,0) {
-			Set $Bit(tBitString,tLine) = $Get(tExecutableFlags(tLine),0)
-		}
-		Set pCodeUnit.ExecutableLines = tBitString
+		
 		
 		If (tType = "CLS") {
 			Set pCodeUnit.Generated = ($$$comClassKeyGet(tName,$$$cCLASSgeneratedby) '= "")
@@ -137,6 +133,11 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 		
 		
 		If (tType = "PY") {
+			#; set tPointer = 0
+			#; While $ListNext(pDocumentText, tPointer, tCurLine) {
+			#; 	do pCodeUnit.Lines.Insert(tCurLine)
+			#; }
+
 			Set ClassName = $Piece(tName,".", *)
 			Set tMethodInfo = ##class(TestCoverage.Utils).GetPythonMethodMapping(pDocumentText, ClassName)
 			Set tLineToMethodInfo = tMethodInfo."__getitem__"(0)
@@ -152,6 +153,7 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 				Set tStartLine = tStartEnd."__getitem__"(0)
 				Set tEndLine = tStartEnd."__getitem__"(1)
 				Do pCodeUnit.MethodMap.SetAt(tStartLine,tMethod)
+				Set tExecutableFlags(tStartLine) = 0
 				Do pCodeUnit.MethodEndMap.SetAt(tEndLine, tMethod)
 
 				Set tMethodMask = ""
@@ -209,7 +211,13 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 			}
 		}
 		
-		
+		Set tBitString = ""
+		For tLine=1:1:$Get(tCodeArray,0) {
+			Set $Bit(tBitString,tLine) = $Get(tExecutableFlags(tLine),0)
+		}
+		Set pCodeUnit.ExecutableLines = tBitString
+
+
 		Set tSC = pCodeUnit.%Save()
 		If $$$ISERR(tSC) && $System.Status.Equals(tSC,$$$ERRORCODE($$$IDKeyNotUnique)) {
 			// Some other process beat us to it.
