@@ -133,10 +133,12 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 		
 		
 		If (tType = "PY") {
-			#; set tPointer = 0
-			#; While $ListNext(pDocumentText, tPointer, tCurLine) {
-			#; 	do pCodeUnit.Lines.Insert(tCurLine)
-			#; }
+			set tPointer = 0
+			While $ListNext(pDocumentText, tPointer, tCurLine) {
+				do pCodeUnit.Lines.Insert(tCurLine)
+			}
+
+			do pCodeUnit.Lines.Insert("")
 
 			Set ClassName = $Piece(tName,".", *)
 			Set tMethodInfo = ##class(TestCoverage.Utils).GetPythonMethodMapping(pDocumentText, ClassName)
