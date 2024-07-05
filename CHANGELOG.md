@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.2.0] - 2024-07-05
 
 ### Added
-- #14: Added a straightforward way to find and track coverage on all interoperability processes in the current namespace ([#14](https://github.com/intersystems/TestCoverage/issues/14))
+- #14: Added a straightforward way to find and track coverage on all interoperability processes in the current namespace
 
 ## [3.1.0] - 2024-01-17
 
