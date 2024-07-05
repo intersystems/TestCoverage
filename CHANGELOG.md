@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2024-07-05
+
+### Added
+- #14: Added a straightforward way to find and track coverage on all interoperability processes in the current namespace ([#14](https://github.com/intersystems/TestCoverage/issues/14))
+
 ## [3.1.0] - 2024-01-17
 
 ### Changed

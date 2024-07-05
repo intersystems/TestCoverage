@@ -188,7 +188,7 @@ Method GetInteropProcesses(Output tProcessIDs)
 		Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
 	}
 	if ('$LISTFIND(tProcessIDs, $Job)) {
-		set $LIST(tProcessIDs, *+1) = $Job
+		set tProcessIDs = tProcessIDs _ $ListBuild($Job) 
 	}
 }
 
@@ -198,8 +198,7 @@ Method LogAssert(success, action, description, extra, args...)
 {
 	do ##super(.success, .action, .description, .extra, args...)
 	if (..InteroperabilityProcesses && (description = "StartProduction()")) {
-		
-		do GetInteropProcesses(.tProcessIDs)
+		do ..GetInteropProcesses(.tProcessIDs)
 		set ..ProcessIDs = tProcessIDs
 		$$$ThrowOnError(..EndCoverageTracking())
 		$$$ThrowOnError(..StartCoverageTracking())
@@ -273,7 +272,7 @@ Method StartCoverageTracking() As %Status [ Private ]
 			}
 			ElseIf (..InteroperabilityProcesses)
 			{
-				do GetInteropProcesses(.tProcessIDs)
+				do ..GetInteropProcesses(.tProcessIDs)
 			}
 			Set tMetrics = $ListBuild("RtnLine") _ $Select(..Timing:$ListBuild("Time","TotalTime"),1:"")
 			$$$ThrowOnError(..Monitor.StartWithScope(tRelevantTargets,tMetrics,tProcessIDs))
