@@ -163,11 +163,6 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 					Set $Bit(tMethodMask,j) = 1
 				}
 				Set tMethodSignature = $list(pDocumentText, tStartLine)
-				Set tSubUnit = ##class(TestCoverage.Data.CodeSubUnit.Method).%New()
-				Set tSubUnit.Name = tMethod
-				Set tSubUnit.DisplaySignature = tMethodSignature
-				Set tSubUnit.Mask = tMethodMask
-				Do pCodeUnit.SubUnits.Insert(tSubUnit)
 			}
 		}
 		Else {
@@ -194,6 +189,8 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 						Set tSubUnit.Name = tMethod
 						Set tSubUnit.DisplaySignature = tMethodSignature
 						Set tSubUnit.Mask = tMethodMask
+						set NormalizedSignature =  $zconvert($zstrip(tMethodSignature, "*W"), "l")
+						set tSubUnit.IsPythonMethod = (NormalizedSignature [ "[language=python]") 
 						Do pCodeUnit.SubUnits.Insert(tSubUnit)
 						Set tMethod = ""
 						Set tMethodSignature = ""
@@ -506,21 +503,48 @@ Method UpdateComplexity() As %Status
 		If (..Type '= "CLS") {
 			Quit
 		}
-		
+
+		// python methods
+		If (##class(TestCoverage.Manager).HasPython(..Name)) {
+			do ##class(TestCoverage.Data.CodeUnit).GetCurrentByName(..Name _ ".PY", , .pPyCodeUnit, )
+			set tDocumentText = pPyCodeUnit.Lines.Serialize()
+			set tMethodComplexities = ..GetPythonComplexities(tDocumentText)
+		}
+
 		Set tKey = ""
 		For {
 			Set tSubUnit = ..SubUnits.GetNext(.tKey)
 			If (tKey = "") {
 				Quit
 			}
-			$$$ThrowOnError(tSubUnit.UpdateComplexity())
+			If (tSubUnit.IsPythonMethod) {
+				set tSubUnit.Complexity = tMethodComplexities."__getitem__"(tSubUnit.Name)
+				$$$ThrowOnError(tSubUnit.%Save(0))
+			} Else {
+				$$$ThrowOnError(tSubUnit.UpdateComplexity())
+			}
 		}
+
 		
 		$$$ThrowOnError(..%Save())
 	} Catch e {
 		Set tSC = e.AsStatus()
 	}
 	Quit tSC
+}
+
+ClassMethod GetPythonComplexities(pDocumentText) [ Language = python ]
+{
+    from radon.complexity import cc_visit
+    import iris
+    source_lines = iris.cls('%SYS.Python').ToList(pDocumentText)
+    source_code = "\n".join(source_lines) 
+    visitor = cc_visit(source_code)
+    class_info = visitor[0]
+    method_complexities = {}
+    for method in class_info.methods:
+        method_complexities[method.name] = method.complexity 
+    return method_complexities
 }
 
 Method GetMethodOffset(pAbsoluteLine As %Integer, Output pMethod As %String, Output pOffset As %Integer)

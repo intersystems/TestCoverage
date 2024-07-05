@@ -9,6 +9,9 @@ Property Mask As TestCoverage.DataType.Bitstring;
 /// Cyclomatic complexity of the code subunit
 Property Complexity As %Integer [ InitialExpression = 1 ];
 
+/// 1 if it's a python class method, 0 if not
+Property IsPythonMethod As %Boolean;
+
 Method UpdateComplexity() As %Status
 {
 	Quit $$$OK
@@ -26,6 +29,9 @@ Storage Default
 <Value name="3">
 <Value>Complexity</Value>
 </Value>
+<Value name="4">
+<Value>IsPythonMethod</Value>
+</Value>
 </Data>
 <DataLocation>{%%PARENT}("SubUnits")</DataLocation>
 <DefaultData>CodeSubUnitDefaultData</DefaultData>
@@ -36,4 +42,3 @@ Storage Default
 }
 
 }
-

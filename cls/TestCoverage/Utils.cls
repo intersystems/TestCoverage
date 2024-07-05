@@ -122,7 +122,6 @@ ClassMethod Snapshot(pIntRoutines As %List, Output pRelevantRoutines As %List = 
 					$$$ThrowOnError(##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tName_".PY",,.tPyCodeUnit))
 
 					// update the executable lines for the .cls file's python
-					set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = "Calling update executable lines on " _ tName 
 					$$$ThrowOnError(tCodeUnit.UpdatePyExecutableLines(tName, .tPyCodeUnit))
 					
 				} ElseIf '$BitCount(tCodeUnit.ExecutableLines,1) {
