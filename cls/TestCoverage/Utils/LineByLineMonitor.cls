@@ -71,14 +71,14 @@ ClassMethod PyStartWithScope(pCoverageClasses As %List) [ Language = python ]
 		line_no = frame.f_lineno 
 		if class_name in tCoverageClasses and line_no != 1: # if this is in a covered class 
 			# print(f"A {event} encountered in {func_name}() in class {class_name} at line number {line_no}")
-			tGlob = iris.gref('^IRIS.TEMPCJG')
+			tGlob = iris.gref('^IRIS.TEMP.TestCoveragePY')
 			curId = tGlob.get([class_name])
 			if not curId:
 				tGlob[class_name] = 1
 				curId = 1
 			tGlob[class_name, curId] = line_no
 			tGlob[class_name] = curId+1
-			#; iris.execute('set ^TestCovera3FF5.PyMonitorReC80BD($i(^TestCovera3FF5.PyMonitorReC80BD)) = $listbuild("", ^IRIS.TEMPCJG(1), ^IRIS.TEMPCJG(2),^IRIS.TEMPCJG(3) )')
+			#; iris.execute('set ^TestCovera3FF5.PyMonitorReC80BD($i(^TestCovera3FF5.PyMonitorReC80BD)) = $listbuild("", ^IRIS.TEMP.TestCoveragePY(1), ^IRIS.TEMP.TestCoveragePY(2),^IRIS.TEMP.TestCoveragePY(3) )')
 			
 			#; new_line = iris.cls("TestCoverage.Data.PyMonitorResults")._New()
 			#; new_line.ClassName = class_name
@@ -101,7 +101,7 @@ ClassMethod PyStartWithScope(pCoverageClasses As %List) [ Language = python ]
 
 ClassMethod PyClearCounters()
 {
-	Kill ^IRIS.TEMPCJG
+	Kill ^IRIS.TEMP.TestCoveragePY
 	#; &sql(
 	#; 	delete from TestCoverage_Data.PyMonitorResults
 	#; )

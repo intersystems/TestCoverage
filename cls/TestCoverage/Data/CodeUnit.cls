@@ -283,16 +283,10 @@ Method UpdatePyExecutableLines(pName As %String, ByRef pPyCodeUnit) As %Status
 				Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
 			}
 		}
-		if (pName = "TestCoverage.Utils") {
-			set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = tBitString
-			set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = ..ExecutableLines
-		}
 		Set ..ExecutableLines = $BITLOGIC(..ExecutableLines | tBitString)
 		Set tSC = ..%Save()
 		$$$ThrowOnError(tSC)
-		if (pName = "TestCoverage.Utils") {
-			set ^IRIS.TEMPCG($i(^IRIS.TEMPCG)) = ..ExecutableLines
-		}
+		
 		TCOMMIT
 	} Catch e {
 		Set pCodeUnit = $$$NULLOREF

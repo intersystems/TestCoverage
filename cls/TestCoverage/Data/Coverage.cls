@@ -100,10 +100,9 @@ ClassMethod StoreIntCoverage(pRun As %Integer, pTestPath As %String, pName As %S
 			$$$ThrowOnError(tSC)
 		}
 		Else { // If pType = "PY"
-			//^IRIS.TEMPCJG(148,1)="EP.sysSettrace", ^IRIS.TEMPCJG(148,2)="fun_generator", ^IRIS.TEMPCJG(148,3)=120
-			if $Data(^IRIS.TEMPCJG(pName)) {
-				for i = 1:1:(^IRIS.TEMPCJG(pName)-1) {
-					Set tLineNumber = ^IRIS.TEMPCJG(pName, i)
+			if $Data(^IRIS.TEMP.TestCoveragePY(pName)) {
+				for i = 1:1:(^IRIS.TEMP.TestCoveragePY(pName)-1) {
+					Set tLineNumber = ^IRIS.TEMP.TestCoveragePY(pName, i)
 					Set $Bit(tCoveredLines, tLineNumber) = 1
 				}
 			}
