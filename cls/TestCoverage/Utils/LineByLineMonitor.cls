@@ -78,23 +78,6 @@ ClassMethod PyStartWithScope(pCoverageClasses As %List) [ Language = python ]
 				curId = 1
 			tGlob[class_name, curId] = line_no
 			tGlob[class_name] = curId+1
-			#; iris.execute('set ^TestCovera3FF5.PyMonitorReC80BD($i(^TestCovera3FF5.PyMonitorReC80BD)) = $listbuild("", ^IRIS.TEMP.TestCoveragePY(1), ^IRIS.TEMP.TestCoveragePY(2),^IRIS.TEMP.TestCoveragePY(3) )')
-			
-			#; new_line = iris.cls("TestCoverage.Data.PyMonitorResults")._New()
-			#; new_line.ClassName = class_name
-			#; new_line.FunctionName = func_name
-			#; new_line.LineNumber = line_no 
-			#; new_line._Save() 
-			
-			#; stmt = iris.sql.prepare("INSERT INTO TestCoverage_Data.PyMonitorResults (ClassName, FunctionName, LineNumber) VALUES (?, ?, ?)")
-			#; try:
-			#; 	rs = stmt.execute(class_name, func_name, line_no)
-			#; except Exception as ex:
-			#; 	print(ex.sqlcode, ex.message)
-			
-			# iris.cls("TestCoverage.Utils.LineByLineMonitor").DoNothing()
-			# iris.cls("TestCoverage.Utils.LineByLineMonitor").SavePyLine(line_no, func_name, class_name)
-			#; glob[0] = "we make it back"
 		return my_tracer
 	settrace(my_tracer)
 }
@@ -102,30 +85,6 @@ ClassMethod PyStartWithScope(pCoverageClasses As %List) [ Language = python ]
 ClassMethod PyClearCounters()
 {
 	Kill ^IRIS.TEMP.TestCoveragePY
-	#; &sql(
-	#; 	delete from TestCoverage_Data.PyMonitorResults
-	#; )
-	#; If (SQLCODE < 0) {
-	#; 	Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
-	#; }
-}
-
-ClassMethod DoNothing()
-{
-	set x = 1
-}
-
-ClassMethod SavePyLine(LineNumber As %Integer, FunctionName As %String, ClassName As %String)
-{
-	#; &sql(
-	#; 	INSERT INTO TestCoverage_Data.PyMonitorResults 
-	#; 	(ClassName, FunctionName, LineNumber) 
-	#; 	VALUES (:ClassName, :FunctionName, :LineNumber)
-	#; )
-
-	#; If (SQLCODE < 0) {
-	#; 	Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
-	#; }
 }
 
 ClassMethod PyStop() [ Language = python ]
