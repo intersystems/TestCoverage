@@ -16,6 +16,7 @@ Method TestCodeUnitCreation()
 		#dim tCodeUnit As TestCoverage.Data.CodeUnit
 		Set tClsName = $classname()_".CLS"
 		Set tIntName = $classname()_".1.INT"
+		Set tPyName = $classname()_".PY"
 		Set tSC = ##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tIntName,$Namespace,.tIntCodeUnit)
 		Do $$$AssertStatusOK(tSC,"Found test coverage data for "_tIntName)
 		Do $$$AssertEquals(tIntCodeUnit.Name,$classname()_".1")
@@ -27,28 +28,40 @@ Method TestCodeUnitCreation()
 		Do $$$AssertEquals(tGenCodeUnit.Name,$classname()_".G1")
 		Do $$$AssertEquals(tGenCodeUnit.Type,"INT")
 		
+		
 		Set tSC = ##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tClsName,$Namespace,.tClsCodeUnit)
 		Do $$$AssertStatusOK(tSC,"Found test coverage data for "_tClsName)
 		Do $$$AssertEquals(tClsCodeUnit.Name,$classname())
 		Do $$$AssertEquals(tClsCodeUnit.Type,"CLS")
 		
+		Set tSC = ##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tPyName,$Namespace,.tPyCodeUnit)
+		Do $$$AssertStatusOK(tSC,"Found test coverage data for "_tPyName)
+		Do $$$AssertEquals(tPyCodeUnit.Name,$classname())
+		Do $$$AssertEquals(tPyCodeUnit.Type,"PY")
+
+		Set tSC = tClsCodeUnit.UpdatePyExecutableLines($classname(),.tPyCodeUnit)
+		Do $$$AssertStatusOK(tSC,"Found updated executable line data for "_tClsName)
+
 		Set tConstantReturnValueLine = tClsCodeUnit.MethodMap.GetAt("SampleConstantReturnValue")
 		Set tCodeGeneratorLine = tClsCodeUnit.MethodMap.GetAt("SampleCodeGenerator")
 		Set tNormalMethodLine = tClsCodeUnit.MethodMap.GetAt("SampleNormalMethod")
+		Set tPythonMethodLine = tClsCodeUnit.MethodMap.GetAt("SamplePythonMethod")
 		
 		Do $$$AssertNotEquals(tConstantReturnValueLine,"")
 		Do $$$AssertNotEquals(tCodeGeneratorLine,"")
 		Do $$$AssertNotEquals(tNormalMethodLine,"")
+		Do $$$AssertNotEquals(tPythonMethodLine,"")
 		
 		// tTestLines(line number) = $ListBuild(description, executable (default 1), mapped (default 1), mapped from hash (if relevant), mapped from line (if relevant))
 		Set tTestLines(tConstantReturnValueLine+2) = $ListBuild("SampleConstantReturnValue+1",0,0)
-		Set tTestLines(tCodeGeneratorLine+2) = $ListBuild("SampleCodeGenerator+1",,,tGenCodeUnit.Hash,tGenCodeUnit.MethodMap.GetAt("SampleCodeGenerator")+1)
-		Set tTestLines(tCodeGeneratorLine+3) = $ListBuild("SampleCodeGenerator+2",,,tGenCodeUnit.Hash,tGenCodeUnit.MethodMap.GetAt("SampleCodeGenerator")+2)
-		Set tTestLines(tCodeGeneratorLine+4) = $ListBuild("SampleCodeGenerator+3",,,tGenCodeUnit.Hash,tGenCodeUnit.MethodMap.GetAt("SampleCodeGenerator")+3)
+		Set tTestLines(tCodeGeneratorLine+2) = $ListBuild("SampleCodeGenerator+1",,,tGenCodeUnit.Hash,tGenCodeUnit.MethodMap.GetAt("SampleCodeGenerator")+1, "INT")
+		Set tTestLines(tCodeGeneratorLine+3) = $ListBuild("SampleCodeGenerator+2",,,tGenCodeUnit.Hash,tGenCodeUnit.MethodMap.GetAt("SampleCodeGenerator")+2, "INT")
+		Set tTestLines(tCodeGeneratorLine+4) = $ListBuild("SampleCodeGenerator+3",,,tGenCodeUnit.Hash,tGenCodeUnit.MethodMap.GetAt("SampleCodeGenerator")+3, "INT")
 		Set methodLabel = $Select($System.Version.GetMajor()<2023:"z",1:"")_"SampleNormalMethod"
-		Set tTestLines(tNormalMethodLine+2) = $ListBuild("SampleNormalMethod+1",,,tIntCodeUnit.Hash,tIntCodeUnit.MethodMap.GetAt(methodLabel)+1)
-		Set tTestLines(tNormalMethodLine+3) = $ListBuild("SampleNormalMethod+2",,,tIntCodeUnit.Hash,tIntCodeUnit.MethodMap.GetAt(methodLabel)+2)
-		
+		Set tTestLines(tNormalMethodLine+2) = $ListBuild("SampleNormalMethod+1",,,tIntCodeUnit.Hash,tIntCodeUnit.MethodMap.GetAt(methodLabel)+1, "INT")
+		Set tTestLines(tNormalMethodLine+3) = $ListBuild("SampleNormalMethod+2",,,tIntCodeUnit.Hash,tIntCodeUnit.MethodMap.GetAt(methodLabel)+2, "INT")
+		Set tTestLines(tPythonMethodLine+2) = $ListBuild("SamplePythonMethod+1",,,tPyCodeUnit.Hash,tPyCodeUnit.MethodMap.GetAt("SamplePythonMethod")+1, "PY")
+		Set tTestLines(tPythonMethodLine+3) = $ListBuild("SamplePythonMethod+2",,,tPyCodeUnit.Hash,tPyCodeUnit.MethodMap.GetAt("SamplePythonMethod")+2, "PY")
 		Set tLine = ""
 		For {
 			Set tLine = $Order(tTestLines(tLine),1,tInfo)
@@ -57,9 +70,9 @@ Method TestCodeUnitCreation()
 			}
 			
 			// Overwrite with defined values, leave defaults in AssertLineHandledCorrectly for undefined values (passing byref)
-			Kill tDescription, tExecutable, tMapped, tExpectedFromHash, tExpectedFromLine
-			Set $ListBuild(tDescription, tExecutable, tMapped, tExpectedFromHash, tExpectedFromLine) = tInfo
-			Do ..AssertLineHandledCorrectly(tClsCodeUnit, tLine, .tDescription, .tExecutable, .tMapped, .tExpectedFromHash, .tExpectedFromLine)
+			Kill tDescription, tExecutable, tMapped, tExpectedFromHash, tExpectedFromLine, tType
+			Set $ListBuild(tDescription, tExecutable, tMapped, tExpectedFromHash, tExpectedFromLine, tType) = tInfo
+			Do ..AssertLineHandledCorrectly(tClsCodeUnit, tLine, .tDescription, .tExecutable, .tMapped, .tExpectedFromHash, .tExpectedFromLine, .tType)
 		}
 	} Catch e {
 		Set tSC = e.AsStatus()
@@ -67,7 +80,7 @@ Method TestCodeUnitCreation()
 	Do $$$AssertStatusOK(tSC,"No unexpected errors occurred.")
 }
 
-Method AssertLineHandledCorrectly(pClassCodeUnit As TestCoverage.Data.CodeUnit, pLine As %Integer, pDescription As %String = {"Line "_pLine}, pExecutable As %Boolean = 1, pMapped As %Boolean = 1, pExpectedFromHash As %String = "", pExpectedFromLine As %Integer = "") As %Boolean
+Method AssertLineHandledCorrectly(pClassCodeUnit As TestCoverage.Data.CodeUnit, pLine As %Integer, pDescription As %String = {"Line "_pLine}, pExecutable As %Boolean = 1, pMapped As %Boolean = 1, pExpectedFromHash As %String = "", pExpectedFromLine As %Integer = "", pType As %String = "INT") As %Boolean
 {
 	Set tAllGood = 1
 	If pExecutable {
@@ -78,7 +91,7 @@ Method AssertLineHandledCorrectly(pClassCodeUnit As TestCoverage.Data.CodeUnit, 
 	
 	&sql(select count(*),FromHash,FromLine into :tCount,:tFromHash,:tFromLine
 		from TestCoverage_Data.CodeUnitMap
-		where ToHash = :pClassCodeUnit.Hash and ToLine = :pLine and FromHash->Type = 'INT')
+		where ToHash = :pClassCodeUnit.Hash and ToLine = :pLine and FromHash->Type = :pType)
 	If (SQLCODE < 0) {
 		Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
 	}
@@ -123,5 +136,10 @@ ClassMethod SampleNormalMethod()
 	Quit y
 }
 
+ClassMethod SamplePythonMethod() [ Language = python ]
+{
+	import iris
+	return 50
 }
 
+}
