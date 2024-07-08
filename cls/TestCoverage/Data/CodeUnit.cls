@@ -133,6 +133,7 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 		
 		
 		If (tType = "PY") {
+			// fill in the Lines property of this CodeUnit
 			set tPointer = 0
 			While $ListNext(pDocumentText, tPointer, tCurLine) {
 				do pCodeUnit.Lines.Insert(tCurLine)
@@ -140,10 +141,12 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 
 			do pCodeUnit.Lines.Insert("")
 
+			// Filling in the MethodMap and LineToMethodMap properties 
 			Set ClassName = $Piece(tName,".", *)
 			Set tMethodInfo = ##class(TestCoverage.Utils).GetPythonMethodMapping(pDocumentText, ClassName)
-			Set tLineToMethodInfo = tMethodInfo."__getitem__"(0)
-			Set tMethodMapInfo = tMethodInfo."__getitem__"(1)
+			// tMethodInfo is a python tuple of (line to method info, method map info) 
+			Set tLineToMethodInfo = tMethodInfo."__getitem__"(0) // a python builtins list where the item at index i is the name of the method that line i is a part of 
+			Set tMethodMapInfo = tMethodInfo."__getitem__"(1) // a python builtins dict with key = method name, value = the line number of its definition
 			for i=1:1:$listlength(pDocumentText) {
 				Set tMethod = tLineToMethodInfo."__getitem__"(i)
 				Do pCodeUnit.LineToMethodMap.SetAt(tMethod,i)
@@ -157,12 +160,6 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 				Do pCodeUnit.MethodMap.SetAt(tStartLine,tMethod)
 				Set tExecutableFlags(tStartLine) = 0
 				Do pCodeUnit.MethodEndMap.SetAt(tEndLine, tMethod)
-
-				Set tMethodMask = ""
-				for j = tStartLine:1:tEndLine {
-					Set $Bit(tMethodMask,j) = 1
-				}
-				Set tMethodSignature = $list(pDocumentText, tStartLine)
 			}
 		}
 		Else {
@@ -252,10 +249,8 @@ Method UpdatePyExecutableLines(pName As %String, ByRef pPyCodeUnit) As %Status
 		Set tBitString = ""
 		If (##class(TestCoverage.Manager).HasPython(pName)) {
 			
-			// snapshot the Python CodeUnit for it 
 			Set tFromHash = pPyCodeUnit.Hash
 			Set tToHash = ..Hash 
-			// now bring over the executable lines 
 			
 			&sql(
 				DECLARE C1 CURSOR FOR
@@ -352,12 +347,15 @@ Method UpdateSourceMap(pSourceNamespace As %String, ByRef pCache) As %Status
 			
 			set tClass = ..Name
 			Set tSourceUnits(tClass_".CLS") = ""
+			// we'll need the MethodMap from the .CLS CodeUnit to figure out the line mappings
 			$$$ThrowOnError(..GetCurrentByName(tClass _ ".CLS", pSourceNamespace, .pCLSCodeUnit, .pCLSCache))
 			// we'll do the mappings from the .py to the .cls direction, so that we don't iterate over objectscript lines
 			Set tMethod = ""
 			Do ..MethodMap.GetNext(.tMethod)
 			while (tMethod '= "") 
 			{
+				// for each method in the .py file, we'll find the line number of the corresponding method (guaranteed to be unique) in the .cls file
+				// and then map each line in the .py file to each line in the .cls file by just going 1 by 1 down the lines 
 				Set tCLSMethodNum = pCLSCodeUnit.MethodMap.GetAt(tMethod)
 				Set tMethodStart = ..MethodMap.GetAt(tMethod)
 				Set tMethodEnd = ..MethodEndMap.GetAt(tMethod)
@@ -506,7 +504,7 @@ Method UpdateComplexity() As %Status
 
 		// python methods
 		If (##class(TestCoverage.Manager).HasPython(..Name)) {
-			do ##class(TestCoverage.Data.CodeUnit).GetCurrentByName(..Name _ ".PY", , .pPyCodeUnit, )
+			do ##class(TestCoverage.Data.CodeUnit).GetCurrentByName(..Name _ ".PY", , .pPyCodeUnit, ) // need the source code for the python
 			set tDocumentText = pPyCodeUnit.Lines.Serialize()
 			set tMethodComplexities = ..GetPythonComplexities(tDocumentText)
 		}
@@ -533,6 +531,7 @@ Method UpdateComplexity() As %Status
 	Quit tSC
 }
 
+/// returns a python dict with (key, value) = (method name, complexity) for each python method
 ClassMethod GetPythonComplexities(pDocumentText) [ Language = python ]
 {
     from radon.complexity import cc_visit
@@ -578,8 +577,8 @@ ClassMethod GetCurrentHash(pName As %String, pType As %String, Output pHash As %
 				// includes the class compilation signature.
 				Set pHash = ..HashArrayRange(.pCodeArray,5,pName_"."_pType,.tSizeHint)
 			} ElseIf (pType = "PY") {
-				Merge pCodeArray = ^ROUTINE(pName_".py",0)
-				set tSizeHint = ^ROUTINE(pName_".py",0,0)
+				Merge pCodeArray = ^ROUTINE(pName_".py",0) // the python source code 
+				set tSizeHint = ^ROUTINE(pName_".py",0,0) // the number of lines in the python code 
 				set pHash = ..HashArrayRange(.pCodeArray, ,pName_".py", .pSizeHint)
 			} Else {
 				// Give standard descriptive error about the type being invalid.

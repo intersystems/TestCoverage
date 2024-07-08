@@ -100,6 +100,8 @@ ClassMethod StoreIntCoverage(pRun As %Integer, pTestPath As %String, pName As %S
 			$$$ThrowOnError(tSC)
 		}
 		Else { // If pType = "PY"
+			//^IRIS.TEMP.TestCoveragePy(ClassName) contains the number of covered lines in this class
+			//^IRIS.TEMP.TestCoveragePy(ClassName, i) in increasing order contain the line numbers for the covered lines
 			if $Data(^IRIS.TEMP.TestCoveragePY(pName)) {
 				for i = 1:1:(^IRIS.TEMP.TestCoveragePY(pName)-1) {
 					Set tLineNumber = ^IRIS.TEMP.TestCoveragePY(pName, i)

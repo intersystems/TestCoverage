@@ -82,12 +82,6 @@ ClassMethod Snapshot(pIntRoutines As %List, Output pRelevantRoutines As %List = 
 {
 	Set tSC = $$$OK
 	Try {
-		// For debugging use only: no parallelization
-		#; Set tPointer = 0
-		#; While $ListNext(pIntRoutines, tPointer, tIntRoutine) {
-		#; 	do ##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tIntRoutine_".INT")
-		#; }
-
 		#dim tSnapshotQueue As %SYSTEM.WorkMgr
 		Set tSnapshotQueue = $System.WorkMgr.Initialize(,.tSC)
 		$$$ThrowOnError(tSC)
@@ -132,30 +126,6 @@ ClassMethod Snapshot(pIntRoutines As %List, Output pRelevantRoutines As %List = 
 			
 			Set pRelevantRoutines = pRelevantRoutines _ $ListBuild(tIntRoutine)
 		}
-
-		// snapshot all the compiled python CodeUnits
-		#; Set tSnapshotQueue = $System.WorkMgr.Initialize(,.tSC)
-		#; $$$ThrowOnError(tSC)
-		#; Set tPointer = 0
-		#; While $ListNext(pPyRelevantRoutines,tPointer,tPyRoutine) {
-		#; 	Set tSC = tSnapshotQueue.Queue("##class(TestCoverage.Data.CodeUnit).GetCurrentByName",tPyRoutine_".PY")
-		#; 	$$$ThrowOnError(tSC)
-		#; }
-		
-		#; Set tSC = tSnapshotQueue.WaitForComplete()
-		#; $$$ThrowOnError(tSC)
-
-		// update the executable lines for the .cls files that have python -- TODO: make the UpdatePyExecutableLines method not rely on knowing the .cls and .py CodeUnits beforehand
-		#; Set tSnapshotQueue = $System.WorkMgr.Initialize(,.tSC)
-		#; $$$ThrowOnError(tSC)
-		#; Set tPointer = 0
-		#; While $ListNext(pPyRelevantRoutines,tPointer,tClass) {
-		#; 	Set tSC = tSnapshotQueue.Queue("##class(TestCoverage.Data.CodeUnit).UpdatePyExecutableLines",tClass)
-		#; 	$$$ThrowOnError(tSC)
-		#; }
-		
-		#; Set tSC = tSnapshotQueue.WaitForComplete()
-		#; $$$ThrowOnError(tSC)
 
 		Write !
 	} Catch e {
@@ -443,6 +413,9 @@ ClassMethod CodeArrayToList(ByRef pCodeArray, Output pDocumentText As %List)
 	quit
 }
 
+/// returns a python tuple of (line to method info, method map info) 
+/// linetomethodinfo: a python builtins list where the item at index i is the name of the method that line i is a part of 
+/// methodmapinfo: a python builtins dict with key = method name, value = the line number of its definition
 ClassMethod GetPythonMethodMapping(pDocumentText, ClassName) [ Language = python ]
 {
 	import iris
@@ -454,13 +427,13 @@ ClassMethod GetPythonMethodMapping(pDocumentText, ClassName) [ Language = python
 	source = ''.join(source_lines)
 	tree = ast.parse(source)
 	line_function_map = [None] * (len(source_lines)+2)
-	method_map = {}
+	method_map = {} # dictionary from the method name to its start and ending line number
 
 	class FunctionMapper(ast.NodeVisitor):
 		def __init__(self):
 			self.current_class = None
 			self.current_function = None
-			self.outermost_function = None
+			self.outermost_function = None # for objectscript purposes, we only care about the outer level functions/methods
 
 		def visit_ClassDef(self, node):
 			prev_class = self.current_class
@@ -471,7 +444,7 @@ ClassMethod GetPythonMethodMapping(pDocumentText, ClassName) [ Language = python
 		def visit_FunctionDef(self, node):
 			if self.outermost_function is None:
 				self.outermost_function = node.name
-				method_map[node.name] = (node.lineno-1, node.end_lineno-1)
+				method_map[node.name] = (node.lineno-1, node.end_lineno-1) 
 
 			self.current_function = node.name
 			for lineno in range(node.lineno, node.end_lineno + 1):
@@ -526,7 +499,7 @@ ClassMethod GetPythonLineExecutableFlags(pDocumentText) [ Language = python ]
 										ast.AsyncWith, ast.Raise, ast.Try, ast.Assert, 
 										ast.Import, ast.ImportFrom, ast.Pass, 
 										ast.Break, ast.Continue, ast.Delete, ast.Yield, 
-										ast.YieldFrom, ast.Await, ast.Nonlocal)): # all executable
+										ast.YieldFrom, ast.Await, ast.Nonlocal)): # all executable (determined manually)
 					executable_lines.add(node.lineno)
 				elif isinstance(node, ast.ExceptHandler): # except (but not finally) is executable
 					executable_lines.add(node.lineno) 
