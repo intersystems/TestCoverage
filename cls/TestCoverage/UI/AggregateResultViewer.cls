@@ -25,7 +25,7 @@ XData Contents [ XMLNamespace = "http://www.intersystems.com/zen" ]
 				ROUND(100*CoveredLines/ExecutableLines,2) PercentCoverage,
 				ExecutableLines as ExecutableLines,
 				CoveredLines As LinesCovered,
-				ROUND(100*CoveredMethods/ExecutableMethods,2) MethodCoverage,
+				CASE ExecutableMethods WHEN 0 THEN NULL ELSE ROUND(100*CoveredMethods/ExecutableMethods,2) END As MethodCoverage,
 				ExecutableMethods As ExecutableMethods,
 				CoveredMethods As MethodsCovered,
 				'' as Info,
@@ -100,4 +100,3 @@ ClientMethod drawCell(value, row, col) [ Language = javascript ]
 }
 
 }
-
