@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added 
 - #29: Track code coverage for embedded python methods in .cls files
 
+## [3.1.1] - Unreleased
+
+### Fixed
+- #39: Fixed bug where results viewer gave divide by zero error when there were 0 executed methods in the covered code 
+
 ## [3.1.0] - 2024-07-05
 
 ### Added
