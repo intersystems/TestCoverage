@@ -66,6 +66,10 @@ Property Run As TestCoverage.Data.Run;
 /// Value at subscript is set to 1 if there are executable lines of code in the target, 0 if not.
 Property KnownCoverageTargets [ MultiDimensional, Private ];
 
+/// Known python coverage targets (already snapshotted). <br />
+/// Value at subscript is set to 1 if there are executable lines of code in the target, 0 if not.
+Property KnownPyCoverageTargets [ MultiDimensional, Private ];
+
 /// Cache of (name, type) -> hash
 Property Hashes [ MultiDimensional ];
 
@@ -229,10 +233,9 @@ Method StartCoverageTracking() As %Status [ Private ]
 	Set tSC = $$$OK
 	New $Namespace
 	Try {
-		If (..CoverageTargets '= "") {
+		If ((..CoverageTargets '= "" ) || (..PyCoverageTargets '= "")) {
 			Set $Namespace = ..SourceNamespace
 			Set tRelevantTargets = ""
-			Set tPyRelevantTargets = ""
 			Set tNewTargets = ""
 			Set tPointer = 0
 			While $ListNext(..CoverageTargets,tPointer,tCoverageTarget) {
@@ -240,23 +243,25 @@ Method StartCoverageTracking() As %Status [ Private ]
 					Set tNewTargets = tNewTargets_$ListBuild(tCoverageTarget)
 				} ElseIf tIsRelevant {
 					Set tRelevantTargets = tRelevantTargets_$ListBuild(tCoverageTarget)
-					// check if the relevant old targets have python components
-					Set tOther = ##class(%Library.RoutineMgr).GetOther(tCoverageTarget,"INT",-1)
-					If (tOther '= "") && ($Piece(tOther,".",*) = "CLS") {
-						set tName = $piece(tOther, ".", 1, *-1)
-						If (..HasPython(tName)) {
-							set tPyRelevantTargets = tPyRelevantTargets _ $ListBuild(tName)
-						}
-					}
+				}
+			}
+
+			Set tPyRelevantTargets = ""
+			Set tNewPyTargets = ""
+			Set tPointer = 0
+			While $ListNext(..PyCoverageTargets,tPointer,tPyCoverageTarget) {
+				If '$Data(..KnownPyCoverageTargets(tPyCoverageTarget),tIsRelevant)#2 {
+					Set tNewPyTargets = tNewPyTargets_$ListBuild(tPyCoverageTarget)
+				} ElseIf tIsRelevant {
+					Set tPyRelevantTargets = tPyRelevantTargets_$ListBuild(tPyCoverageTarget)
 				}
 			}
 			
-			If (tNewTargets '= "") {
+			If ((tNewTargets '= "") || (tNewPyTargets '= "")) {
 				$$$StartTimer("Taking snapshot of code and CLS/MAC/INT mappings")
-				Set tSC = ##class(TestCoverage.Utils).Snapshot(tNewTargets, .tNewRelevantTargets, .tNewPyRelevantTargets)
+				Set tSC = ##class(TestCoverage.Utils).Snapshot(tNewTargets, tNewPyTargets, .tNewRelevantTargets, .tNewPyRelevantTargets)
 				$$$StopTimer
 				$$$ThrowOnError(tSC)
-			
 				Set tPointer = 0
 				While $ListNext(tNewTargets,tPointer,tNewTarget) {
 					Set ..KnownCoverageTargets(tNewTarget) = 0
@@ -269,12 +274,18 @@ Method StartCoverageTracking() As %Status [ Private ]
 				}
 
 				Set tPointer = 0
+				While $ListNext(tNewPyTargets,tPointer,tNewPyTarget) {
+					Set ..KnownPyCoverageTargets(tNewPyTarget) = 0
+				}
+
+				Set tPointer = 0
 				While $ListNext(tNewPyRelevantTargets,tPointer,tPyRelevantTarget) {
+					Set ..KnownPyCoverageTargets(tPyRelevantTarget) = 1
 					Set tPyRelevantTargets = tPyRelevantTargets_$ListBuild(tPyRelevantTarget)
 				}
 			}
 			
-			If (tRelevantTargets = "") {
+			If ((tRelevantTargets = "") && (tPyRelevantTargets = "")) {
 				Write !,"WARNING: Nothing found to monitor for routine(s): "_$ListToString(tNewTargets)
 			}
 			
@@ -374,7 +385,6 @@ Method UpdateCoverageTargetsForTestDirectory(pDirectory As %String) As %Status [
 				}
 			}
 		}
-		
 		Set tObjectCodeList = ..GetObjectCodeForSourceNames(tCoverageTargetList)
 		Set ..CoverageTargets = tObjectCodeList // Also restarts the monitor if it is running and updates data on covered routines/classes
 		Set ..PyCoverageTargets = tPyCoverageTargetList // no need to get the compiled names, it's already correct 
@@ -512,7 +522,7 @@ Method EndCoverageTracking(pTestSuite As %String = "", pTestClass As %String = "
 {
 	Set tSC = $$$OK
 	Try {
-		If (..CoverageTargets '= "") {
+		If ((..CoverageTargets '= "") || (..PyCoverageTargets '= "")) {
 			// Pause the monitor.
 			Set tSC = ..Monitor.Pause()
 			Do ##class(TestCoverage.Utils.LineByLineMonitor).PyStop()

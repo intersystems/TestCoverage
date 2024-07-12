@@ -78,7 +78,7 @@ ClassMethod GetTestCoverageTableList() As %List
 /// This is parallelized using <class>%SYSTEM.WorkMgr</class> for better performance. <br />
 /// <var>pRelevantRoutines</var> is a $ListBuild list of .INT routines that map back to a .CLS or .MAC
 /// routine with at least one executable line.
-ClassMethod Snapshot(pIntRoutines As %List, Output pRelevantRoutines As %List = "", Output pPyRelevantRoutines As %List = "") As %Status
+ClassMethod Snapshot(pIntRoutines As %List, pPyRoutines As %List, Output pRelevantRoutines As %List = "", Output pPyRelevantRoutines As %List = "") As %Status
 {
 	Set tSC = $$$OK
 	Try {
@@ -96,6 +96,7 @@ ClassMethod Snapshot(pIntRoutines As %List, Output pRelevantRoutines As %List = 
 		$$$ThrowOnError(tSC)
 
 
+
 		// See which routines are actually relevant (one or more lines mapping back to a class with 1 or more executable lines)
 		// There's no point in optimizing out .MAC routines; they'll always have code
 		Set tPointer = 0
@@ -106,17 +107,26 @@ ClassMethod Snapshot(pIntRoutines As %List, Output pRelevantRoutines As %List = 
 				// This also snapshots the compiled python routine with it if there is one
 				#dim tCodeUnit As TestCoverage.Data.CodeUnit
 				Set tSC = ##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tOther,,.tCodeUnit)
+				
 				If $$$ISERR(tSC) {
 					Continue // Non-fatal. Just skip it.
 				}
 				Set tName = tCodeUnit.Name // should be the same as tOther without the .cls, but if I have it already why not
+				Set SnapshottedClasses(tName) = 1
 				If ##class(TestCoverage.Manager).HasPython(tName) {
-					set pPyRelevantRoutines = pPyRelevantRoutines _ $ListBuild(tName)
 					// take a snapshot of the compiled python file 
 					$$$ThrowOnError(##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tName_".PY",,.tPyCodeUnit))
 
 					// update the executable lines for the .cls file's python
 					$$$ThrowOnError(tCodeUnit.UpdatePyExecutableLines(tName, .tPyCodeUnit))
+
+					// update the relevant python routines
+					If ($BitCount(tPyCodeUnit.ExecutableLines, 1)) {
+						set pPyRelevantRoutines = pPyRelevantRoutines _ $ListBuild(tName)
+					} ElseIf '$BitCount(tCodeUnit.ExecutableLines,1) {
+						// if there's no executable python and no executable objectscript, skip it 
+						Continue
+					}
 					
 				} ElseIf '$BitCount(tCodeUnit.ExecutableLines,1) {
 					// Skip it - no executable lines.
@@ -125,6 +135,21 @@ ClassMethod Snapshot(pIntRoutines As %List, Output pRelevantRoutines As %List = 
 			}
 			
 			Set pRelevantRoutines = pRelevantRoutines _ $ListBuild(tIntRoutine)
+		}
+
+		// Snapshot all the python routines and their corresponding classes that haven't already been snapshotted 
+		Set tPointer = 0
+		While $ListNext(pPyRoutines, tPointer, tPyRoutine) {
+			If ('$Data(SnapshottedClasses(tPyRoutine))) {
+				$$$ThrowOnError(##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tPyRoutine_".CLS",,.tCodeUnit))
+				$$$ThrowOnError(##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tPyRoutine_".PY",,.tPyCodeUnit))
+				$$$ThrowOnError(tCodeUnit.UpdatePyExecutableLines(tPyRoutine, .tPyCodeUnit))
+				
+				If ($BitCount(tPyCodeUnit.ExecutableLines, 1)) {
+					set pPyRelevantRoutines = pPyRelevantRoutines _ $ListBuild(tPyRoutine)
+				}
+				Set SnapshottedClasses(tPyRoutine) = 1
+			}
 		}
 
 		Write !
