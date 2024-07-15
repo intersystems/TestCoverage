@@ -4,6 +4,7 @@ Class UnitTest.TestCoverage.Unit.TestCoverageList Extends %UnitTest.TestCase
 /// helper function to find the samplecovlist.list's path
 ClassMethod FindCoverageList(directory As %String = "") As %String
 {
+
   set stmt = ##class(%SQL.Statement).%New()
   set status = stmt.%PrepareClassQuery("%File", "FileSet")
   if $$$ISERR(status) {write "%Prepare failed:" do $SYSTEM.Status.DisplayError(status) quit}  
@@ -22,15 +23,20 @@ ClassMethod FindCoverageList(directory As %String = "") As %String
             return name 
         }
      } elseif (type = "D"){
-      do ..FindCoverageList(name)
+        set retVal = ..FindCoverageList(name)
+        if (retVal '= "") {
+            return retVal 
+        }
     }
   }
   if (rset.%SQLCODE < 0) {write "%Next failed:", !, "SQLCODE ", rset.%SQLCODE, ": ", rset.%Message quit}
+  return "" // didn't find it in this directory
 }
 
 Method TestGettingCoverageList()
 {
     set tFile = ..FindCoverageList(^UnitTestRoot) // finds the samplecovlist.list 
+    set ^IRIS.TEMPCJG($i(^IRIS.TEMPCJG)) = tFile
     do ##class(TestCoverage.Manager).GetCoverageTargetsForFile(tFile, .tTargetArray)
 
     Set CorrectCoverageTargets("CLS", "TestCoverage.Data.CodeSubUnit") = ""
