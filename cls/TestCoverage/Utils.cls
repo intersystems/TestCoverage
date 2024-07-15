@@ -431,9 +431,9 @@ ClassMethod GetClassLineExecutableFlags(pClassName As %String, ByRef pDocumentTe
 
 ClassMethod CodeArrayToList(ByRef pCodeArray, Output pDocumentText As %List)
 {
-	set pDocumentText = $lb()
-	for i=1:1:pCodeArray(0) {
-		set $list(pDocumentText, i) = pCodeArray(i)
+	set pDocumentText = ""
+	for i=1:1:$get(pCodeArray(0)) {
+		set pDocumentText = pDocumentText _ $ListBuild(pCodeArray(i))
 	}
 	quit
 }

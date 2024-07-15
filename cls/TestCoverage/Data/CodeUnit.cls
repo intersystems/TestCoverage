@@ -251,38 +251,24 @@ Method UpdatePyExecutableLines(pName As %String, ByRef pPyCodeUnit) As %Status
 			
 			Set tFromHash = pPyCodeUnit.Hash
 			Set tToHash = ..Hash 
-			
-			&sql(
-				DECLARE C1 CURSOR FOR
-				SELECT map.ToLine
-				INTO :hToLine
-				FROM TestCoverage_Data.CodeUnitMap map 
-				JOIN TestCoverage_Data.CodeUnit fromCodeUnit 
-				ON map.FromHash = fromCodeUnit.Hash 
-				JOIN TestCoverage_Data.CodeUnit toCodeUnit 
-				ON map.ToHash = toCodeUnit.Hash 
-				AND fromCodeUnit.Hash = :tFromHash
-				AND toCodeUnit.Hash = :tToHash
-				WHERE TestCoverage.BIT_VALUE(fromCodeUnit.ExecutableLines,map.FromLine) <> 0
-				)
-			&sql(OPEN C1)
-			If (SQLCODE < 0) {
-				Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
+			set sql = "SELECT map.ToLine FROM TestCoverage_Data.CodeUnitMap map " _ 
+			"JOIN TestCoverage_Data.CodeUnit fromCodeUnit " _ 
+			"ON fromCodeUnit.Hash = map.FromHash " _ 
+			"WHERE map.FromHash =  ? " _ 
+			"AND map.ToHash = ? " _ 
+			"AND TestCoverage.BIT_VALUE(fromCodeUnit.ExecutableLines,map.FromLine) <> 0"
+		
+			set resultSet = ##class(%SQL.Statement).%ExecDirect(, sql, tFromHash, tToHash)
+			If (resultSet.%SQLCODE < 0) {
+				Throw ##class(%Exception.SQL).CreateFromSQLCODE(resultSet.%SQLCODE, resultSet.%Message)
 			}
-			For {
-				&SQL(FETCH C1)
-				If (SQLCODE < 0) {
-					Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
-				} ElseIf (SQLCODE) {
-					Quit
-				}
-				// Process the fetched rows
-				// hToLine contains the line number in the .cls file corresponding to executable lines in the .py file
+			while resultSet.%Next(.tSC) {
+				$$$ThrowOnError(tSC)
+				Set hToLine = resultSet.%GetData(1)
 				Set $Bit(tBitString, hToLine) = 1
 			}
-			&sql(CLOSE C1)
-			If (SQLCODE < 0) {
-				Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
+			If (resultSet.%SQLCODE < 0) {
+				Throw ##class(%Exception.SQL).CreateFromSQLCODE(resultSet.%SQLCODE, resultSet.%Message)
 			}
 		}
 		Set ..ExecutableLines = $BITLOGIC(..ExecutableLines | tBitString)
@@ -362,8 +348,6 @@ Method UpdateSourceMap(pSourceNamespace As %String, ByRef pCache) As %Status
 				Set tMethodName = tMethod
 				Set tFullMap(tMethodStart) = $lb("CLS", tClass,tMethodName, -1, -1) ; -1 because the class 
 				; definition doesn't have the +1 offset from the { 
-
-				Do ..MethodMap.GetNext(.tMethod)
 				For i = tMethodStart+1:1:tMethodEnd {
 					Set tClassLineNum = i-tMethodStart
 					Set tFullMap(i) = $lb("CLS", tClass,tMethodName, tClassLineNum, tClassLineNum)
@@ -375,6 +359,7 @@ Method UpdateSourceMap(pSourceNamespace As %String, ByRef pCache) As %Status
 						Set tSC = $$$ERROR($$$GeneralError,"Compiled .py code doesn't match .CLS python code ")
 					}
 				}
+				Do ..MethodMap.GetNext(.tMethod)
 			}
 		}
 		

@@ -1,4 +1,4 @@
-Include %occErrors
+Include (%occErrors, TestCoverage)
 
 /// Wrapper around %Monitor.System.LineByLine to ensure that the monitor is stopped when it should be, and also
 /// to wrap the decision about whether to stop/start the monitor or to just clear counters.
@@ -70,8 +70,7 @@ ClassMethod PyStartWithScope(pCoverageClasses As %List) [ Language = python ]
 		# extracts the line number 
 		line_no = frame.f_lineno 
 		if class_name in tCoverageClasses and line_no != 1: # if this is in a covered class 
-			# print(f"A {event} encountered in {func_name}() in class {class_name} at line number {line_no}")
-			tGlob = iris.gref('^IRIS.TEMP.TestCoveragePY')
+			tGlob = iris.gref('^IRIS.TEMP.TestCoveragePY') # python doesn't have macros -- this is $$$PyMonitorResults
 			curId = tGlob.get([class_name])
 			if not curId:
 				tGlob[class_name] = 1
@@ -84,7 +83,7 @@ ClassMethod PyStartWithScope(pCoverageClasses As %List) [ Language = python ]
 
 ClassMethod PyClearCounters()
 {
-	Kill ^IRIS.TEMP.TestCoveragePY
+	Kill $$$PyMonitorResults
 }
 
 ClassMethod PyStop() [ Language = python ]

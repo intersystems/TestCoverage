@@ -1,3 +1,5 @@
+Include TestCoverage
+
 IncludeGenerator TestCoverage
 
 Class TestCoverage.Data.Coverage Extends %Persistent
@@ -102,9 +104,9 @@ ClassMethod StoreIntCoverage(pRun As %Integer, pTestPath As %String, pName As %S
 		Else { // If pType = "PY"
 			//^IRIS.TEMP.TestCoveragePy(ClassName) contains the number of covered lines in this class
 			//^IRIS.TEMP.TestCoveragePy(ClassName, i) in increasing order contain the line numbers for the covered lines
-			if $Data(^IRIS.TEMP.TestCoveragePY(pName)) {
-				for i = 1:1:(^IRIS.TEMP.TestCoveragePY(pName)-1) {
-					Set tLineNumber = ^IRIS.TEMP.TestCoveragePY(pName, i)
+			if $Data($$$PyMonitorResults(pName)) {
+				for i = 1:1:($$$PyMonitorResults(pName)-1) {
+					Set tLineNumber = $$$PyMonitorResults(pName, i)
 					Set $Bit(tCoveredLines, tLineNumber) = 1
 				}
 			}
