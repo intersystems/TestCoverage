@@ -17,9 +17,10 @@ ClassMethod FindCoverageList(directory As %String = "") As %String
     set type = rset.%Get("Type")
 
     if (type = "F") {
-      if ($piece(name, "\", *) = "samplecovlist.list") {
-        return name 
-      }
+        do ##class(%File).Deconstruct(name, .dirs)
+        if (dirs(dirs) = "samplecovlist.list") {
+            return name 
+        }
      } elseif (type = "D"){
       do ..FindCoverageList(name)
     }
