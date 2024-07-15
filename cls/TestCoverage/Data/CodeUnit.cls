@@ -152,7 +152,7 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 				Do pCodeUnit.LineToMethodMap.SetAt(tMethod,i)
 			}
 			Set iterator = tMethodMapInfo."__iter__"()
-			for i=1:1:tMethodMapInfo."__len__"() {
+			for i=1:1:tMethodMapInfo."__len__"() { // when iterator passes the last element, it throws a Python exception: StopIteration error, so I think the current pattern is preferable over that
 				Set tMethod = iterator."__next__"()
 				Set tStartEnd = tMethodMapInfo."__getitem__"(tMethod)
 				Set tStartLine = tStartEnd."__getitem__"(0)
