@@ -60,7 +60,6 @@ ClassMethod StoreIntCoverage(pRun As %Integer, pTestPath As %String, pName As %S
 		#dim tResult As %SQL.StatementResult
 		Set tSC = ##class(TestCoverage.Data.CodeUnit).GetCurrentByName(pName_"."_pType,,.tCodeUnit,.pCache)
 		$$$ThrowOnError(tSC)
-		
 		If ..UniqueCoverageDataExists(pRun,tCodeUnit.Hash,pTestPath,.tID) {
 			Set tInstance = ..%OpenId(tID,,.tSC)
 			$$$ThrowOnError(tSC)
@@ -70,6 +69,10 @@ ClassMethod StoreIntCoverage(pRun As %Integer, pTestPath As %String, pName As %S
 			$$$ThrowOnError(tSC)
 			Set tInstance.TestPath = pTestPath
 			Set tInstance.Hash = tCodeUnit
+			For tLineNumber=1:1:tCodeUnit.Lines.Count() {
+				do tInstance.RtnLine.SetAt(0, tLineNumber) // initialized to 0 hits of each line
+				// necessary for the python coverages because they don't track lines that aren't covered, only lines that are covered
+			} 
 		}
 		
 		Set tCoveredLines = tInstance.CoveredLines
@@ -102,12 +105,17 @@ ClassMethod StoreIntCoverage(pRun As %Integer, pTestPath As %String, pName As %S
 			$$$ThrowOnError(tSC)
 		}
 		Else { // If pType = "PY"
-			//^IRIS.TEMP.TestCoveragePy(ClassName) contains the number of covered lines in this class
-			//^IRIS.TEMP.TestCoveragePy(ClassName, i) in increasing order contain the line numbers for the covered lines
+			//  $$$PyMonitorResults(classname, linenumber) = the number of times that linenumber in that class was covered 
+
 			if $Data($$$PyMonitorResults(pName)) {
-				for i = 1:1:($$$PyMonitorResults(pName)-1) {
-					Set tLineNumber = $$$PyMonitorResults(pName, i)
-					Set $Bit(tCoveredLines, tLineNumber) = 1
+				Set tLine = ""
+				for {
+					Set tLine = $Order($$$PyMonitorResults(pName, tLine), 1, tLineCount)
+					if (tLine = "") {
+						quit 
+					}
+					Set $Bit(tCoveredLines, tLine) = 1
+					Do tInstance.RtnLine.SetAt(tInstance.RtnLine.GetAt(tLine) + tLineCount, tLine)
 				}
 			}
 			

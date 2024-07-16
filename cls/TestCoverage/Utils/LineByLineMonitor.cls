@@ -71,12 +71,13 @@ ClassMethod PyStartWithScope(pCoverageClasses As %List) [ Language = python ]
 		line_no = frame.f_lineno 
 		if class_name in tCoverageClasses and line_no != 1: # if this is in a covered class 
 			tGlob = iris.gref('^IRIS.TEMP.TestCoveragePY') # python doesn't have macros -- this is $$$PyMonitorResults
-			curId = tGlob.get([class_name])
-			if not curId:
-				tGlob[class_name] = 1
-				curId = 1
-			tGlob[class_name, curId] = line_no
-			tGlob[class_name] = curId+1
+			# $$$PyMonitorResults(classname, linenumber) = the number of times that linenumber in that class was covered 
+
+			curCount = tGlob.get([class_name, line_no]) 
+			if not curCount:
+				curCount = 0
+			tGlob[class_name, line_no] = curCount + 1 
+			
 		return my_tracer
 	settrace(my_tracer)
 }
