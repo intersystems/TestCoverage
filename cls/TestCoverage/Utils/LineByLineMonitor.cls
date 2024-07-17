@@ -65,7 +65,6 @@ ClassMethod PyStartWithScope(pCoverageClasses As %List) [ Language = python ]
 		# extracts frame code 
 		code = frame.f_code 
 		# extracts calling function name and the class that the function is in 
-		func_name = code.co_name 
 		class_name = frame.f_globals['__name__']
 		# extracts the line number 
 		line_no = frame.f_lineno 

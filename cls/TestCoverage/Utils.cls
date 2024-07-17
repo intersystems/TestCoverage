@@ -441,14 +441,13 @@ ClassMethod CodeArrayToList(ByRef pCodeArray, Output pDocumentText As %List)
 /// returns a python tuple of (line to method info, method map info) 
 /// linetomethodinfo: a python builtins list where the item at index i is the name of the method that line i is a part of 
 /// methodmapinfo: a python builtins dict with key = method name, value = the line number of its definition
-ClassMethod GetPythonMethodMapping(pDocumentText, ClassName) [ Language = python ]
+ClassMethod GetPythonMethodMapping(pDocumentText) [ Language = python ]
 {
 	import iris
 	import ast 
 	source_lines = iris.cls('%SYS.Python').ToList(pDocumentText)
 	source_lines = [line + "\n" for line in source_lines]  # contains a list of each line of the source code
 
-	class_name = ClassName
 	source = ''.join(source_lines)
 	tree = ast.parse(source)
 	line_function_map = [None] * (len(source_lines)+2)
@@ -480,6 +479,7 @@ ClassMethod GetPythonMethodMapping(pDocumentText, ClassName) [ Language = python
 			if self.outermost_function == node.name:
 				self.outermost_function = None
 
+	# preprocessing the ending line number for each function 
 	tree_with_line_numbers = ast.increment_lineno(tree, n=1)
 	for node in ast.walk(tree_with_line_numbers):
 		if isinstance(node, ast.FunctionDef):

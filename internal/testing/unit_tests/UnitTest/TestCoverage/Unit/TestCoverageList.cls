@@ -36,7 +36,6 @@ ClassMethod FindCoverageList(directory As %String = "") As %String
 Method TestGettingCoverageList()
 {
     set tFile = ..FindCoverageList(^UnitTestRoot) // finds the samplecovlist.list 
-    set ^IRIS.TEMPCJG($i(^IRIS.TEMPCJG)) = tFile
     do ##class(TestCoverage.Manager).GetCoverageTargetsForFile(tFile, .tTargetArray)
 
     Set CorrectCoverageTargets("CLS", "TestCoverage.Data.CodeSubUnit") = ""
