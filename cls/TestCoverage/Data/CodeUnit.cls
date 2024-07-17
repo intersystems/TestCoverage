@@ -142,8 +142,7 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 			do pCodeUnit.Lines.Insert("")
 
 			// Filling in the MethodMap and LineToMethodMap properties 
-			Set ClassName = $Piece(tName,".", *)
-			Set tMethodInfo = ##class(TestCoverage.Utils).GetPythonMethodMapping(pDocumentText, ClassName)
+			Set tMethodInfo = ##class(TestCoverage.Utils).GetPythonMethodMapping(pDocumentText)
 			// tMethodInfo is a python tuple of (line to method info, method map info) 
 			Set tLineToMethodInfo = tMethodInfo."__getitem__"(0) // a python builtins list where the item at index i is the name of the method that line i is a part of 
 			Set tMethodMapInfo = tMethodInfo."__getitem__"(1) // a python builtins dict with key = method name, value = the line number of its definition
@@ -356,7 +355,7 @@ Method UpdateSourceMap(pSourceNamespace As %String, ByRef pCache) As %Status
 					Set tClassLineCode = $zstrip(pCLSCodeUnit.Lines.GetAt(tCLSMethodNum + tClassLineNum + 1), "<>W")
 					Set tPyLineCode = $zstrip(..Lines.GetAt(i), "<>W")
 					if (tPyLineCode '= tClassLineCode) {
-						Set tSC = $$$ERROR($$$GeneralError,"Compiled .py code doesn't match .CLS python code ")
+						Set tSC = $$$ERROR($$$GeneralError,"Compiled .py code doesn't match .CLS python code at line " _ $char(10,13) _ tPyLineCode)
 					}
 				}
 				Do ..MethodMap.GetNext(.tMethod)
