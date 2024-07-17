@@ -564,7 +564,7 @@ ClassMethod GetCurrentHash(pName As %String, pType As %String, Output pHash As %
 			} ElseIf (pType = "PY") {
 				Merge pCodeArray = ^ROUTINE(pName_".py",0) // the python source code 
 				set tSizeHint = ^ROUTINE(pName_".py",0,0) // the number of lines in the python code 
-				set pHash = ..HashArrayRange(.pCodeArray, ,pName_".py", .pSizeHint)
+				set pHash = ..HashArrayRange(.pCodeArray, ,pName_".py", .tSizeHint)
 			} Else {
 				// Give standard descriptive error about the type being invalid.
 				$$$ThrowStatus(..TypeIsValid(pType))
