@@ -101,6 +101,17 @@ ClassMethod MapRunCoverage(pRunIndex As %Integer) As %Status
 				Do tCoverage.RunSetObjectId(pRunIndex)
 				Do tCoverage.HashSetObjectId(hToHash)
 				Set tCoverage.TestPath = hTestPath
+				// also set all of its metrics to 0 to start with
+				Set tCodeUnit = ##class(TestCoverage.Data.CodeUnit).%OpenId(hToHash)
+				For i=1:1:tRun.Metrics.Count() {
+					Set tMetricKey = tRun.Metrics.GetAt(i)
+					Set tMetric = $PROPERTY(tCoverage, tMetricKey)
+					for tLineNumber = 1:1:tCodeUnit.Lines.Count() {
+						Do tMetric.SetAt(0, tLineNumber)
+					}
+				}
+				
+				
 			}
 			Set tCoverage.Ignore = hIgnore
 			Set tCoverage.CoveredLines = $BitLogic(tCoverage.CoveredLines|hCoveredLines)
@@ -191,4 +202,3 @@ Storage Default
 }
 
 }
-
