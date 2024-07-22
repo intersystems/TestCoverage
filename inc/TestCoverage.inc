@@ -3,4 +3,4 @@ ROUTINE TestCoverage [Type=INC]
 #define StopTimer If (..Display["log") { Write ($zh-tStartTime)," seconds" }
 #define METRICS "RtnLine","Time","TotalTime"
 #define TestPathAllTests "all tests"
-#define PyMonitorResults ^IRIS.TEMP.TestCoveragePY
+#define PyMonitorResults ^IRIS.Temp.TestCoveragePY
