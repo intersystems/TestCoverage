@@ -38,9 +38,13 @@ Property MethodEndMap As array Of %Integer;
 /// For routines, map of labels to associated line numbers
 Property LineToMethodMap As array Of %Dictionary.CacheIdentifier [ Private ];
 
+/// For each line, whether or not it belongs to a python method, only populated for .cls CodeUnits
+Property LineIsPython As array Of %Boolean;
+
 /// Set to true if this class/routine is generated
 Property Generated As %Boolean [ InitialExpression = 0 ];
 
+/// 
 /// Methods, branches, etc. within this unit of code.
 Relationship SubUnits As TestCoverage.Data.CodeSubUnit [ Cardinality = children, Inverse = Parent ];
 
@@ -129,6 +133,7 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 		
 		If (tType = "CLS") {
 			Set pCodeUnit.Generated = ($$$comClassKeyGet(tName,$$$cCLASSgeneratedby) '= "")
+
 		}
 		
 		
@@ -170,6 +175,9 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 				Do pCodeUnit.Lines.Insert(tLine)
 				
 				If (tType = "CLS") {
+					// initialize each line to not python (we'll update this later)
+					Do pCodeUnit.LineIsPython.SetAt(0, tLineNumber)
+
 					// Extract line offset of methods in classes
 					Set tStart = $Piece(tLine," ")
 					If (tStart = "ClassMethod") || (tStart = "Method") {
@@ -225,6 +233,54 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 		If (tType '= "CLS") {
 			$$$ThrowOnError(pCodeUnit.UpdateSourceMap(pSourceNamespace,.pCache))
 		}
+		TCOMMIT
+	} Catch e {
+		Set pCodeUnit = $$$NULLOREF
+		Set tSC = e.AsStatus()
+	}
+	While ($TLevel > tInitTLevel) {
+		TROLLBACK 1
+	}
+	Quit tSC
+}
+
+/// Fill in the LineIsPython property of .cls files 
+Method UpdatePythonLines(pName As %String, ByRef pPyCodeUnit) As %Status
+{
+	
+	Set tSC = $$$OK
+	Set tOriginalNamespace = $Namespace
+	Set tInitTLevel = $TLevel
+	
+	Try {
+		TSTART
+		
+		If (##class(TestCoverage.Manager).HasPython(pName)) {
+
+			Set tFromHash = pPyCodeUnit.Hash
+			Set tToHash = ..Hash 
+			set sql = "SELECT map.ToLine FROM TestCoverage_Data.CodeUnitMap map " _ 
+			"JOIN TestCoverage_Data.CodeUnit fromCodeUnit " _ 
+			"ON fromCodeUnit.Hash = map.FromHash " _ 
+			"WHERE map.FromHash =  ? " _ 
+			"AND map.ToHash = ? " 	
+			set resultSet = ##class(%SQL.Statement).%ExecDirect(, sql, tFromHash, tToHash)
+			If (resultSet.%SQLCODE < 0) {
+				Throw ##class(%Exception.SQL).CreateFromSQLCODE(resultSet.%SQLCODE, resultSet.%Message)
+			}
+			while resultSet.%Next(.tSC) {
+				$$$ThrowOnError(tSC)
+				Set hToLine = resultSet.%GetData(1)
+				set ^IRIS.TempCG($i(^IRIS.TempCG)) = hToLine
+				do ..LineIsPython.SetAt(1, hToLine)
+			}
+			If (resultSet.%SQLCODE < 0) {
+				Throw ##class(%Exception.SQL).CreateFromSQLCODE(resultSet.%SQLCODE, resultSet.%Message)
+			}
+		}
+		Set tSC = ..%Save()
+		$$$ThrowOnError(tSC)
+		
 		TCOMMIT
 	} Catch e {
 		Set pCodeUnit = $$$NULLOREF
@@ -635,6 +691,11 @@ Storage Default
 <Value name="5">
 <Value>Generated</Value>
 </Value>
+</Data>
+<Data name="LineIsPython">
+<Attribute>LineIsPython</Attribute>
+<Structure>subnode</Structure>
+<Subscript>"LineIsPython"</Subscript>
 </Data>
 <Data name="LineToMethodMap">
 <Attribute>LineToMethodMap</Attribute>

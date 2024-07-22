@@ -42,6 +42,9 @@ Method TestCodeUnitCreation()
 		Set tSC = tClsCodeUnit.UpdatePyExecutableLines($classname(),.tPyCodeUnit)
 		Do $$$AssertStatusOK(tSC,"Found updated executable line data for "_tClsName)
 
+		Set tSC = tClsCodeUnit.UpdatePythonLines($classname(),.tPyCodeUnit)
+		Do $$$AssertStatusOK(tSC,"Found updated pythonicity line data for "_tClsName)
+
 		Set tConstantReturnValueLine = tClsCodeUnit.MethodMap.GetAt("SampleConstantReturnValue")
 		Set tCodeGeneratorLine = tClsCodeUnit.MethodMap.GetAt("SampleCodeGenerator")
 		Set tNormalMethodLine = tClsCodeUnit.MethodMap.GetAt("SampleNormalMethod")
@@ -51,6 +54,10 @@ Method TestCodeUnitCreation()
 		Do $$$AssertNotEquals(tCodeGeneratorLine,"")
 		Do $$$AssertNotEquals(tNormalMethodLine,"")
 		Do $$$AssertNotEquals(tPythonMethodLine,"")
+
+		// test if LineIsPython is working properly
+		Do $$$AssertEquals(tClsCodeUnit.LineIsPython.GetAt(tPythonMethodLine+2), 1)
+		Do $$$AssertEquals(tClsCodeUnit.LineIsPython.GetAt(tNormalMethodLine+2), 0)
 		
 		// tTestLines(line number) = $ListBuild(description, executable (default 1), mapped (default 1), mapped from hash (if relevant), mapped from line (if relevant))
 		Set tTestLines(tConstantReturnValueLine+2) = $ListBuild("SampleConstantReturnValue+1",0,0)

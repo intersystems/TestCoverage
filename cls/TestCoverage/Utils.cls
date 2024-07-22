@@ -120,6 +120,9 @@ ClassMethod Snapshot(pIntRoutines As %List, pPyRoutines As %List, Output pReleva
 					// update the executable lines for the .cls file's python
 					$$$ThrowOnError(tCodeUnit.UpdatePyExecutableLines(tName, .tPyCodeUnit))
 
+					// update the pythonicity of the lines for the .cls file
+					$$$ThrowOnError(tCodeUnit.UpdatePythonLines(tName, .tPyCodeUnit))
+
 					// update the relevant python routines
 					If ($BitCount(tPyCodeUnit.ExecutableLines, 1)) {
 						set pPyRelevantRoutines = pPyRelevantRoutines _ $ListBuild(tName)
@@ -144,6 +147,7 @@ ClassMethod Snapshot(pIntRoutines As %List, pPyRoutines As %List, Output pReleva
 				$$$ThrowOnError(##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tPyRoutine_".CLS",,.tCodeUnit))
 				$$$ThrowOnError(##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tPyRoutine_".PY",,.tPyCodeUnit))
 				$$$ThrowOnError(tCodeUnit.UpdatePyExecutableLines(tPyRoutine, .tPyCodeUnit))
+				$$$ThrowOnError(tCodeUnit.UpdatePythonLines(tPyRoutine, .tPyCodeUnit))
 				
 				If ($BitCount(tPyCodeUnit.ExecutableLines, 1)) {
 					set pPyRelevantRoutines = pPyRelevantRoutines _ $ListBuild(tPyRoutine)
