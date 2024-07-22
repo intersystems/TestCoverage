@@ -271,7 +271,6 @@ Method UpdatePythonLines(pName As %String, ByRef pPyCodeUnit) As %Status
 			while resultSet.%Next(.tSC) {
 				$$$ThrowOnError(tSC)
 				Set hToLine = resultSet.%GetData(1)
-				set ^IRIS.TempCG($i(^IRIS.TempCG)) = hToLine
 				do ..LineIsPython.SetAt(1, hToLine)
 			}
 			If (resultSet.%SQLCODE < 0) {
