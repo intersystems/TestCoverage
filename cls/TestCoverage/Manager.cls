@@ -362,7 +362,7 @@ Method AddCoverageRoutine(pRoutineName As %String) [ Private ]
 	}
 }
 
-ClassMethod GetCoverageTargetsForFile(pFileName As %String, Output pTargetArray) [ Private ]
+ClassMethod GetCoverageTargetsForFile(pFileName As %String, Output pTargetArray)
 {
 	Kill pTargetArray
 	
@@ -374,7 +374,7 @@ ClassMethod GetCoverageTargetsForFile(pFileName As %String, Output pTargetArray)
 	
 	For tLineIndex=1:1:$Get(tFileLines) {
 		Set tLine = tFileLines(tLineIndex)
-		
+		Set tLine = $zstrip(tLine, "<>W")
 		// Skip blank lines
 		If (tLine = "") {
 			Continue
@@ -393,7 +393,7 @@ ClassMethod GetCoverageTargetsForFile(pFileName As %String, Output pTargetArray)
 			Set tExclude = 1
 			Set tLine = $Extract(tLine,2,*)
 		}
-		
+		Set tLine = $zstrip(tLine, "<>W") // again in case there were extra spaces after the - 
 		Set tName = $Piece(tLine,".",1,*-1)
 		Set tExtension = $ZConvert($Piece(tLine,".",*),"U")
 		

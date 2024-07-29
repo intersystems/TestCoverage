@@ -1,0 +1,5 @@
+TestCoverage.Data.PKG 
+- TestCoverage.Data.Aggregate.PKG
+// this is a comment
+  UnitTest*.mac
+TestCoverage.Manager.cls
