@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - #39: Fixed bug where results viewer gave divide by zero error when there were 0 executed methods in the covered code 
 - #41: Now the code strips leading and trailing whitespace from coverage.list, so "PackageName.PKG " will still be loaded properly
 
+### Added
+- #42: Added a listener interface and manager with an associated user parameter, allowing the user to broadcast output on test method/case/suite completion. 
+
 ## [3.1.0] - 2024-07-05
 
 ### Added
