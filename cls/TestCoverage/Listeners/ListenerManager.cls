@@ -3,7 +3,7 @@ Class TestCoverage.Listeners.ListenerManager Extends %RegisteredObject
 
 Property listeners As list Of TestCoverage.Listeners.ListenerInterface;
 
-Method BroadCastToAll(pMessage As %String) As %Status
+Method BroadCastToAll(pMessage As %DynamicObject) As %Status
 {
     set tSC = $$$OK 
     try {

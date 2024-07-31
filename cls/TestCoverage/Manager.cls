@@ -643,7 +643,8 @@ ClassMethod OnAfterAllTests(manager As TestCoverage.Manager, dir As %String, ByR
 		If (manager.CoverageDetail = 0) {
 			Set tSC = manager.EndCoverageTracking()
 			if (manager.ListenerManager) {
-				Do manager.ListenerManager.BroadCastToAll("All tests complete")
+				set tObj = {"message": "All tests complete"}
+				Do manager.ListenerManager.BroadCastToAll(tObj)
 			}
 		}
 		Do manager.Monitor.Stop()
@@ -682,7 +683,9 @@ Method OnBeforeTestSuite(dir As %String, suite As %String, testspec As %String, 
 		Set ..CurrentTestClass = ""
 		Set ..CurrentTestMethod = ""
 		if (..ListenerManager) {
-			Do ..ListenerManager.BroadCastToAll("Starting test suite: " _ suite )
+			set tObj = {"message": "Starting test suite: "}
+			do tObj.%Set("suite", suite)
+			Do ..ListenerManager.BroadCastToAll(tObj)
 		}
 		If (..CoverageDetail = 1) {
 			Set tSC = ..StartCoverageTracking()
@@ -705,7 +708,9 @@ Method OnAfterTestSuite(dir As %String, suite As %String, testspec As %String, B
 			Set tSC = ..EndCoverageTracking($Case(suite,"":"(root)",:suite))
 		}
 		if (..ListenerManager) {
-			Do ..ListenerManager.BroadCastToAll("Finished test suite: " _ suite )
+			set tObj = {"message": "Finished test suite: "}
+			do tObj.%Set("suite", suite)
+			Do ..ListenerManager.BroadCastToAll(tObj)
 		}
 	} Catch e {
 		Set tSC = e.AsStatus()
@@ -722,7 +727,10 @@ Method OnBeforeTestCase(suite As %String, class As %String) As %Status
 		Set ..CurrentTestClass = class
 		Set ..CurrentTestMethod = ""
 		if (..ListenerManager) {
-			Do ..ListenerManager.BroadCastToAll("Starting test case: " _ suite _ "/" _ class )
+			set tObj = {"message": "Starting test case: "}
+			do tObj.%Set("suite", suite)
+			do tObj.%Set("class", class)
+			Do ..ListenerManager.BroadCastToAll(tObj)
 		}
 		If (..CoverageDetail = 2) {
 			Set tSC = ..StartCoverageTracking()
@@ -743,7 +751,10 @@ Method OnAfterTestCase(suite As %String, class As %String) As %Status
 			Set tSC = ..EndCoverageTracking(suite, class)
 		}
 		if (..ListenerManager) {
-			Do ..ListenerManager.BroadCastToAll("Starting test case: " _ suite _ "/" _ class )
+			set tObj = {"message": "Finished test case: "}
+			do tObj.%Set("suite", suite)
+			do tObj.%Set("class", class)
+			Do ..ListenerManager.BroadCastToAll(tObj)
 		}
 	} Catch e {
 		Set tSC = e.AsStatus()
@@ -759,7 +770,11 @@ Method OnBeforeOneTest(suite As %String, class As %String, method As %String) As
 	Try {
 		Set ..CurrentTestMethod = method
 		if (..ListenerManager) {
-			Do ..ListenerManager.BroadCastToAll("Starting test method: " _ suite _ "/" _ class _ "/" _ method )
+			set tObj = {"message": "Starting test method: "}
+			do tObj.%Set("suite", suite)
+			do tObj.%Set("class", class)
+			do tObj.%Set("method", method)
+			Do ..ListenerManager.BroadCastToAll(tObj)
 		}
 		If (..CoverageDetail = 3) {
 			Set tSC = ..StartCoverageTracking()
@@ -780,7 +795,11 @@ Method OnAfterOneTest(suite As %String, class As %String, method As %String) As 
 			Set tSC = ..EndCoverageTracking(suite, class, method)
 		}
 		if (..ListenerManager) {
-			Do ..ListenerManager.BroadCastToAll("Finished test method: " _ suite _ "/" _ class _ "/" _ method )
+			set tObj = {"message": "Finished test method: "}
+			do tObj.%Set("suite", suite)
+			do tObj.%Set("class", class)
+			do tObj.%Set("method", method)
+			Do ..ListenerManager.BroadCastToAll(tObj)
 		}
 	} Catch e {
 		Set tSC = e.AsStatus()
