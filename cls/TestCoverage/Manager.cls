@@ -624,6 +624,10 @@ ClassMethod OnBeforeAllTests(manager As TestCoverage.Manager, dir As %String, By
 		}
 		
 		If (manager.CoverageDetail = 0) {
+			if (manager.ListenerManager) {
+				set tObj = {"message": "Starting tests"}
+				Do manager.ListenerManager.BroadCastToAll(tObj)
+			}
 			Set tSC = manager.StartCoverageTracking()
 			$$$ThrowOnError(tSC)
 		}
