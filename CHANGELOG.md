@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.0.0] - 2024-08-01
 
 ### Changed
-- #42: As a consequence of this change, the minimum supported platform version is 2022.1
+- #29: As a consequence of this change, the minimum supported platform version is 2022.1
 
 ### Added 
 - #29: Track code coverage for embedded python methods in .cls files
