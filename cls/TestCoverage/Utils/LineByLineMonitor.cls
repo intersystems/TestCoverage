@@ -1,4 +1,4 @@
-Include %occErrors
+Include (%occErrors, TestCoverage)
 
 /// Wrapper around %Monitor.System.LineByLine to ensure that the monitor is stopped when it should be, and also
 /// to wrap the decision about whether to stop/start the monitor or to just clear counters.
@@ -20,6 +20,9 @@ Method PausedGet() As %Boolean [ CodeMode = expression ]
 {
 ..Started && '$zu(84,1)
 }
+
+/// The current python classes being tracked, so that we know what to store the coverage for
+Property PythonClassList As %List;
 
 Property LastRoutineList As %List [ Private ];
 
@@ -51,22 +54,64 @@ ClassMethod CheckAvailableMemory(pProcessCount As %Integer, pRoutineCount As %In
 	Quit tSC
 }
 
+ClassMethod PyStartWithScope(pCoverageClasses As %List) [ Language = python ]
+{
+	
+	from sys import settrace 
+	import iris
+
+	tCoverageClasses = set(iris.cls('%SYS.Python').ToList(pCoverageClasses))
+	def my_tracer(frame, event, arg = None): 
+		# extracts frame code 
+		code = frame.f_code 
+		# extracts calling function name and the class that the function is in 
+		class_name = frame.f_globals['__name__']
+		# extracts the line number 
+		line_no = frame.f_lineno 
+		if class_name in tCoverageClasses and line_no != 1: # if this is in a covered class 
+			tGlob = iris.gref('^IRIS.Temp.TestCoveragePY') # python doesn't have macros -- this is $$$PyMonitorResults
+			# $$$PyMonitorResults(classname, linenumber) = the number of times that linenumber in that class was covered 
+
+			curCount = tGlob.get([class_name, line_no]) 
+			if not curCount:
+				curCount = 0
+			tGlob[class_name, line_no] = curCount + 1 
+			
+		return my_tracer
+	settrace(my_tracer)
+}
+
+ClassMethod PyClearCounters()
+{
+	Kill $$$PyMonitorResults
+}
+
+ClassMethod PyStop() [ Language = python ]
+{
+	from sys import settrace 
+	settrace(None)
+}
+
 /// Tracks current monitoring context and stops/starts or resets counters depending on whether it has changed
-Method StartWithScope(pRoutineList As %List, pMetricList As %List, pProcessList As %List) As %Status
+Method StartWithScope(pRoutineList As %List, pPyClasses As %List, pMetricList As %List, pProcessList As %List) As %Status
 {
 	Set tSC = $$$OK
 	Try {
+		Set ..PythonClassList = pPyClasses
 		Set tDifferentScope = (..LastRoutineList '= pRoutineList) || (..LastMetricList '= pMetricList) || (..LastProcessList '= pProcessList)
 		If tDifferentScope && ..Started {
 			// If we need to track different routines/metrics/processes, need to stop the monitor before restarting with the new context.
 			Do ..Stop()
+			Do ..PyStop()
 			Set ..LastRoutineList = pRoutineList
 			Set ..LastMetricList = pMetricList
 			Set ..LastProcessList = pProcessList
 		}
 		
 		If '..Started {
+			Do ..PyClearCounters()
 			Set tSC = ..Start(pRoutineList, pMetricList, pProcessList)
+			Do ..PyStartWithScope(pPyClasses)
 			If $System.Status.Equals(tSC,$$$ERRORCODE($$$MonitorMemoryAlloc)) {
 				// Construct a more helpful error message.
 				Set tSC = $$$EMBEDSC(..CheckAvailableMemory($ListLength(pProcessList),$ListLength(pRoutineList),1),tSC)
@@ -158,4 +203,3 @@ ClassMethod GetError(key As %String, args...)
 }
 
 }
-

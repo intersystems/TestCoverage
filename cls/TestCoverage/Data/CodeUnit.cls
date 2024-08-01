@@ -14,7 +14,7 @@ Index NameTypeHash On (Name, Type, Hash) [ Data = ExecutableLines, Unique ];
 /// Name of the code unit
 Property Name As %String(MAXLEN = 255) [ Required ];
 
-/// Type (3-letter extension) of the code unit
+/// Type (2 or 3-letter extension) of the code unit
 Property Type As TestCoverage.DataType.RoutineType [ Required ];
 
 /// Hash of the code unit; for methods for determining this, see <method>GetCurrentHash</method>
@@ -28,15 +28,23 @@ Property ExecutableLines As TestCoverage.DataType.Bitstring;
 
 /// For classes, map of method names in the code to their associated line numbers
 /// For routines, map of labels to associated line numbers
+/// For python, map of method names to associated starting line number
 Property MethodMap As array Of %Integer;
+
+/// Only for python: map of method names to associated ending line number of the method 
+Property MethodEndMap As array Of %Integer;
 
 /// For classes, map of line numbers in code to associated method names
 /// For routines, map of labels to associated line numbers
 Property LineToMethodMap As array Of %Dictionary.CacheIdentifier [ Private ];
 
+/// For each line, whether or not it belongs to a python method, only populated for .cls CodeUnits
+Property LineIsPython As array Of %Boolean;
+
 /// Set to true if this class/routine is generated
 Property Generated As %Boolean [ InitialExpression = 0 ];
 
+/// 
 /// Methods, branches, etc. within this unit of code.
 Relationship SubUnits As TestCoverage.Data.CodeSubUnit [ Cardinality = children, Inverse = Parent ];
 
@@ -98,10 +106,21 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 		}
 		
 		Set $Namespace = pSourceNamespace
+		
 		If (tType = "CLS") {
 			Do ##class(TestCoverage.Utils).GetClassLineExecutableFlags(tName,.tCodeArray,.tExecutableFlags)
-		} Else {
+		} ElseIf ((tType = "INT") || (tType = "MAC")) {
 			Do ##class(TestCoverage.Utils).GetRoutineLineExecutableFlags(.tCodeArray,.tExecutableFlags)
+		} ElseIf (tType="PY") {
+			Do ##class(TestCoverage.Utils).CodeArrayToList(.tCodeArray, .pDocumentText) 
+			Set tExecutableFlagsPyList = ##class(TestCoverage.Utils).GetPythonLineExecutableFlags(pDocumentText)
+			Kill tExecutableFlags
+			for i=1:1:tExecutableFlagsPyList."__len__"()-1 {
+				set tExecutableFlags(i) = tExecutableFlagsPyList."__getitem__"(i)
+			}
+		}
+		Else {
+			return $$$ERROR($$$GeneralError,"File type not supported")
 		}
 		
 		Set $Namespace = tOriginalNamespace
@@ -110,56 +129,98 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 		Set pCodeUnit.Type = tType
 		Set pCodeUnit.Hash = tHash
 		
+		
+		
+		If (tType = "CLS") {
+			Set pCodeUnit.Generated = ($$$comClassKeyGet(tName,$$$cCLASSgeneratedby) '= "")
+
+		}
+		
+		
+		If (tType = "PY") {
+			// fill in the Lines property of this CodeUnit
+			set tPointer = 0
+			While $ListNext(pDocumentText, tPointer, tCurLine) {
+				do pCodeUnit.Lines.Insert(tCurLine)
+			}
+
+			do pCodeUnit.Lines.Insert("")
+
+			// Filling in the MethodMap and LineToMethodMap properties 
+			Set tMethodInfo = ##class(TestCoverage.Utils).GetPythonMethodMapping(pDocumentText)
+			// tMethodInfo is a python tuple of (line to method info, method map info) 
+			Set tLineToMethodInfo = tMethodInfo."__getitem__"(0) // a python builtins list where the item at index i is the name of the method that line i is a part of 
+			Set tMethodMapInfo = tMethodInfo."__getitem__"(1) // a python builtins dict with key = method name, value = the line number of its definition
+			for i=1:1:$listlength(pDocumentText) {
+				Set tMethod = tLineToMethodInfo."__getitem__"(i)
+				Do pCodeUnit.LineToMethodMap.SetAt(tMethod,i)
+			}
+			Set iterator = tMethodMapInfo."__iter__"()
+			for i=1:1:tMethodMapInfo."__len__"() { // when iterator passes the last element, it throws a Python exception: StopIteration error, so I think the current pattern is preferable over that
+				Set tMethod = iterator."__next__"()
+				Set tStartEnd = tMethodMapInfo."__getitem__"(tMethod)
+				Set tStartLine = tStartEnd."__getitem__"(0)
+				Set tEndLine = tStartEnd."__getitem__"(1)
+				Do pCodeUnit.MethodMap.SetAt(tStartLine,tMethod)
+				Set tExecutableFlags(tStartLine) = 0
+				Do pCodeUnit.MethodEndMap.SetAt(tEndLine, tMethod)
+			}
+		}
+		Else {
+			Set tMethod = ""
+			Set tMethodSignature = ""
+			Set tMethodMask = ""
+			For tLineNumber=1:1:$Get(tCodeArray,0) {
+				Set tLine = tCodeArray(tLineNumber)
+				Do pCodeUnit.Lines.Insert(tLine)
+				
+				If (tType = "CLS") {
+					// initialize each line to not python (we'll update this later)
+					Do pCodeUnit.LineIsPython.SetAt(0, tLineNumber)
+
+					// Extract line offset of methods in classes
+					Set tStart = $Piece(tLine," ")
+					If (tStart = "ClassMethod") || (tStart = "Method") {
+						Set tMethod = $Piece($Piece(tLine,"(")," ",2)
+						Set tMethodSignature = tLine
+						Do pCodeUnit.MethodMap.SetAt(tLineNumber,tMethod)
+						Do pCodeUnit.LineToMethodMap.SetAt(tMethod,tLineNumber)
+					} ElseIf ($Extract(tStart) = "{") {
+						// Ignore the opening bracket for a method.
+					} ElseIf ($Extract(tStart) = "}") && (tMethod '= "") {
+						// End of method. Add method subunit to class.
+						Set tSubUnit = ##class(TestCoverage.Data.CodeSubUnit.Method).%New()
+						Set tSubUnit.Name = tMethod
+						Set tSubUnit.DisplaySignature = tMethodSignature
+						Set tSubUnit.Mask = tMethodMask
+						set NormalizedSignature =  $zconvert($zstrip(tMethodSignature, "*W"), "l")
+						set tSubUnit.IsPythonMethod = (NormalizedSignature [ "[language=python]") 
+						Do pCodeUnit.SubUnits.Insert(tSubUnit)
+						Set tMethod = ""
+						Set tMethodSignature = ""
+						Set tMethodMask = ""
+					} ElseIf (tMethod '= "") {
+						Set $Bit(tMethodMask,tLineNumber) = 1
+					}
+				} 
+				Else {
+					// Extract line offset of labels in routines
+					If ($ZStrip($Extract(tLine),"*PWC") '= "") {
+						Set tLabel = $Piece($Piece(tLine," "),"(")
+						Do pCodeUnit.MethodMap.SetAt(tLineNumber,tLabel)
+						Do pCodeUnit.LineToMethodMap.SetAt(tLabel,tLineNumber)
+					}
+				}
+			}
+		}
+		
 		Set tBitString = ""
 		For tLine=1:1:$Get(tCodeArray,0) {
 			Set $Bit(tBitString,tLine) = $Get(tExecutableFlags(tLine),0)
 		}
 		Set pCodeUnit.ExecutableLines = tBitString
-		
-		If (tType = "CLS") {
-			Set pCodeUnit.Generated = ($$$comClassKeyGet(tName,$$$cCLASSgeneratedby) '= "")
-		}
-		
-		Set tMethod = ""
-		Set tMethodSignature = ""
-		Set tMethodMask = ""
-		For tLineNumber=1:1:$Get(tCodeArray,0) {
-			Set tLine = tCodeArray(tLineNumber)
-			Do pCodeUnit.Lines.Insert(tLine)
-			
-			If (tType = "CLS") {
-				// Extract line offset of methods in classes
-				Set tStart = $Piece(tLine," ")
-				If (tStart = "ClassMethod") || (tStart = "Method") {
-					Set tMethod = $Piece($Piece(tLine,"(")," ",2)
-					Set tMethodSignature = tLine
-					Do pCodeUnit.MethodMap.SetAt(tLineNumber,tMethod)
-					Do pCodeUnit.LineToMethodMap.SetAt(tMethod,tLineNumber)
-				} ElseIf ($Extract(tStart) = "{") {
-					// Ignore the opening bracket for a method.
-				} ElseIf ($Extract(tStart) = "}") && (tMethod '= "") {
-					// End of method. Add method subunit to class.
-					Set tSubUnit = ##class(TestCoverage.Data.CodeSubUnit.Method).%New()
-					Set tSubUnit.Name = tMethod
-					Set tSubUnit.DisplaySignature = tMethodSignature
-					Set tSubUnit.Mask = tMethodMask
-					Do pCodeUnit.SubUnits.Insert(tSubUnit)
-					Set tMethod = ""
-					Set tMethodSignature = ""
-					Set tMethodMask = ""
-				} ElseIf (tMethod '= "") {
-					Set $Bit(tMethodMask,tLineNumber) = 1
-				}
-			} Else {
-				// Extract line offset of labels in routines
-				If ($ZStrip($Extract(tLine),"*PWC") '= "") {
-					Set tLabel = $Piece($Piece(tLine," "),"(")
-					Do pCodeUnit.MethodMap.SetAt(tLineNumber,tLabel)
-					Do pCodeUnit.LineToMethodMap.SetAt(tLabel,tLineNumber)
-				}
-			}
-		}
-		
+
+
 		Set tSC = pCodeUnit.%Save()
 		If $$$ISERR(tSC) && $System.Status.Equals(tSC,$$$ERRORCODE($$$IDKeyNotUnique)) {
 			// Some other process beat us to it.
@@ -183,10 +244,107 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 	Quit tSC
 }
 
+/// Fill in the LineIsPython property of .cls files 
+Method UpdatePythonLines(pName As %String, ByRef pPyCodeUnit) As %Status
+{
+	
+	Set tSC = $$$OK
+	Set tOriginalNamespace = $Namespace
+	Set tInitTLevel = $TLevel
+	
+	Try {
+		TSTART
+		
+		If (##class(TestCoverage.Manager).HasPython(pName)) {
+
+			Set tFromHash = pPyCodeUnit.Hash
+			Set tToHash = ..Hash 
+			set sql = "SELECT map.ToLine FROM TestCoverage_Data.CodeUnitMap map " _ 
+			"JOIN TestCoverage_Data.CodeUnit fromCodeUnit " _ 
+			"ON fromCodeUnit.Hash = map.FromHash " _ 
+			"WHERE map.FromHash =  ? " _ 
+			"AND map.ToHash = ? " 	
+			set resultSet = ##class(%SQL.Statement).%ExecDirect(, sql, tFromHash, tToHash)
+			If (resultSet.%SQLCODE < 0) {
+				Throw ##class(%Exception.SQL).CreateFromSQLCODE(resultSet.%SQLCODE, resultSet.%Message)
+			}
+			while resultSet.%Next(.tSC) {
+				$$$ThrowOnError(tSC)
+				Set hToLine = resultSet.%GetData(1)
+				do ..LineIsPython.SetAt(1, hToLine)
+			}
+			If (resultSet.%SQLCODE < 0) {
+				Throw ##class(%Exception.SQL).CreateFromSQLCODE(resultSet.%SQLCODE, resultSet.%Message)
+			}
+		}
+		Set tSC = ..%Save()
+		$$$ThrowOnError(tSC)
+		
+		TCOMMIT
+	} Catch e {
+		Set pCodeUnit = $$$NULLOREF
+		Set tSC = e.AsStatus()
+	}
+	While ($TLevel > tInitTLevel) {
+		TROLLBACK 1
+	}
+	Quit tSC
+}
+
+/// Get the executable lines of code in python over to the .cls CodeUnit
+Method UpdatePyExecutableLines(pName As %String, ByRef pPyCodeUnit) As %Status
+{
+	Set tSC = $$$OK
+	Set tOriginalNamespace = $Namespace
+	Set tInitTLevel = $TLevel
+	Try {
+		TSTART
+		
+		Set tBitString = ""
+		If (##class(TestCoverage.Manager).HasPython(pName)) {
+			
+			Set tFromHash = pPyCodeUnit.Hash
+			Set tToHash = ..Hash 
+			set sql = "SELECT map.ToLine FROM TestCoverage_Data.CodeUnitMap map " _ 
+			"JOIN TestCoverage_Data.CodeUnit fromCodeUnit " _ 
+			"ON fromCodeUnit.Hash = map.FromHash " _ 
+			"WHERE map.FromHash =  ? " _ 
+			"AND map.ToHash = ? " _ 
+			"AND TestCoverage.BIT_VALUE(fromCodeUnit.ExecutableLines,map.FromLine) <> 0"
+		
+			set resultSet = ##class(%SQL.Statement).%ExecDirect(, sql, tFromHash, tToHash)
+			If (resultSet.%SQLCODE < 0) {
+				Throw ##class(%Exception.SQL).CreateFromSQLCODE(resultSet.%SQLCODE, resultSet.%Message)
+			}
+			while resultSet.%Next(.tSC) {
+				$$$ThrowOnError(tSC)
+				Set hToLine = resultSet.%GetData(1)
+				Set $Bit(tBitString, hToLine) = 1
+			}
+			If (resultSet.%SQLCODE < 0) {
+				Throw ##class(%Exception.SQL).CreateFromSQLCODE(resultSet.%SQLCODE, resultSet.%Message)
+			}
+		}
+		Set ..ExecutableLines = $BITLOGIC(..ExecutableLines | tBitString)
+		Set tSC = ..%Save()
+		$$$ThrowOnError(tSC)
+		
+		TCOMMIT
+	} Catch e {
+		Set pCodeUnit = $$$NULLOREF
+		Set tSC = e.AsStatus()
+	}
+	While ($TLevel > tInitTLevel) {
+		TROLLBACK 1
+	}
+	Quit tSC
+}
+
 Method UpdateSourceMap(pSourceNamespace As %String, ByRef pCache) As %Status
 {
 	Set tSC = $$$OK
 	Try {
+		
 		// First, build local array (tMap) of all maps from the .INT file to other files.
 		If (..Type = "INT") {
 			For tLineNumber=1:1:..Lines.Count() {
@@ -223,6 +381,39 @@ Method UpdateSourceMap(pSourceNamespace As %String, ByRef pCache) As %Status
 					Set tFullMap(tLineNumber) = $ListBuild("MAC",tRoutine,"",tLine1,tLine2)
 					Set tSourceUnits(tRoutine_".MAC") = ""
 				}
+			}
+		}
+		If (..Type = "PY") {
+			
+			set tClass = ..Name
+			Set tSourceUnits(tClass_".CLS") = ""
+			// we'll need the MethodMap from the .CLS CodeUnit to figure out the line mappings
+			$$$ThrowOnError(..GetCurrentByName(tClass _ ".CLS", pSourceNamespace, .pCLSCodeUnit, .pCLSCache))
+			// we'll do the mappings from the .py to the .cls direction, so that we don't iterate over objectscript lines
+			Set tMethod = ""
+			Do ..MethodMap.GetNext(.tMethod)
+			while (tMethod '= "") 
+			{
+				// for each method in the .py file, we'll find the line number of the corresponding method (guaranteed to be unique) in the .cls file
+				// and then map each line in the .py file to each line in the .cls file by just going 1 by 1 down the lines 
+				Set tCLSMethodNum = pCLSCodeUnit.MethodMap.GetAt(tMethod)
+				Set tMethodStart = ..MethodMap.GetAt(tMethod)
+				Set tMethodEnd = ..MethodEndMap.GetAt(tMethod)
+				Set tMethodName = tMethod
+				Set tFullMap(tMethodStart) = $lb("CLS", tClass,tMethodName, -1, -1) ; -1 because the class 
+				; definition doesn't have the +1 offset from the { 
+				For i = tMethodStart+1:1:tMethodEnd {
+					Set tClassLineNum = i-tMethodStart
+					Set tFullMap(i) = $lb("CLS", tClass,tMethodName, tClassLineNum, tClassLineNum)
+
+					// extra check to make sure that the lines we're mapping between are the same as expected
+					Set tClassLineCode = $zstrip(pCLSCodeUnit.Lines.GetAt(tCLSMethodNum + tClassLineNum + 1), "<>W")
+					Set tPyLineCode = $zstrip(..Lines.GetAt(i), "<>W")
+					if (tPyLineCode '= tClassLineCode) {
+						Set tSC = $$$ERROR($$$GeneralError,"Compiled .py code doesn't match .CLS python code at line " _ $char(10,13) _ tPyLineCode)
+					}
+				}
+				Do ..MethodMap.GetNext(.tMethod)
 			}
 		}
 		
@@ -270,7 +461,7 @@ Method UpdateSourceMap(pSourceNamespace As %String, ByRef pCache) As %Status
 			Set tCodeUnits(tCodeUnit.Type,tCodeUnit.Name) = tCodeUnit
 		}
 		
-		// Create CodeUnitMap data based on .INT->.CLS mapping.
+		// Create CodeUnitMap data based on .INT / .py ->.CLS mapping.
 		Set tFromHash = ..Hash
 		Set tLineNumber = ""
 		For {
@@ -349,21 +540,49 @@ Method UpdateComplexity() As %Status
 		If (..Type '= "CLS") {
 			Quit
 		}
-		
+
+		// python methods
+		If (##class(TestCoverage.Manager).HasPython(..Name)) {
+			do ##class(TestCoverage.Data.CodeUnit).GetCurrentByName(..Name _ ".PY", , .pPyCodeUnit, ) // need the source code for the python
+			set tDocumentText = pPyCodeUnit.Lines.Serialize()
+			set tMethodComplexities = ..GetPythonComplexities(tDocumentText)
+		}
+
 		Set tKey = ""
 		For {
 			Set tSubUnit = ..SubUnits.GetNext(.tKey)
 			If (tKey = "") {
 				Quit
 			}
-			$$$ThrowOnError(tSubUnit.UpdateComplexity())
+			If (tSubUnit.IsPythonMethod) {
+				set tSubUnit.Complexity = tMethodComplexities."__getitem__"(tSubUnit.Name)
+				$$$ThrowOnError(tSubUnit.%Save(0))
+			} Else {
+				$$$ThrowOnError(tSubUnit.UpdateComplexity())
+			}
 		}
+
 		
 		$$$ThrowOnError(..%Save())
 	} Catch e {
 		Set tSC = e.AsStatus()
 	}
 	Quit tSC
+}
+
+/// returns a python dict with (key, value) = (method name, complexity) for each python method
+ClassMethod GetPythonComplexities(pDocumentText) [ Language = python ]
+{
+    from radon.complexity import cc_visit
+    import iris
+    source_lines = iris.cls('%SYS.Python').ToList(pDocumentText)
+    source_code = "\n".join(source_lines) 
+    visitor = cc_visit(source_code)
+    class_info = visitor[0]
+    method_complexities = {}
+    for method in class_info.methods:
+        method_complexities[method.name] = method.complexity 
+    return method_complexities
 }
 
 Method GetMethodOffset(pAbsoluteLine As %Integer, Output pMethod As %String, Output pOffset As %Integer)
@@ -396,6 +615,10 @@ ClassMethod GetCurrentHash(pName As %String, pType As %String, Output pHash As %
 				// Skip header (lines 1-4) which, for .INT routines generated from classes,
 				// includes the class compilation signature.
 				Set pHash = ..HashArrayRange(.pCodeArray,5,pName_"."_pType,.tSizeHint)
+			} ElseIf (pType = "PY") {
+				Merge pCodeArray = ^ROUTINE(pName_".py",0) // the python source code 
+				set tSizeHint = ^ROUTINE(pName_".py",0,0) // the number of lines in the python code 
+				set pHash = ..HashArrayRange(.pCodeArray, ,pName_".py", .tSizeHint)
 			} Else {
 				// Give standard descriptive error about the type being invalid.
 				$$$ThrowStatus(..TypeIsValid(pType))
@@ -468,6 +691,11 @@ Storage Default
 <Value>Generated</Value>
 </Value>
 </Data>
+<Data name="LineIsPython">
+<Attribute>LineIsPython</Attribute>
+<Structure>subnode</Structure>
+<Subscript>"LineIsPython"</Subscript>
+</Data>
 <Data name="LineToMethodMap">
 <Attribute>LineToMethodMap</Attribute>
 <Structure>subnode</Structure>
@@ -477,6 +705,11 @@ Storage Default
 <Attribute>Lines</Attribute>
 <Structure>subnode</Structure>
 <Subscript>"Lines"</Subscript>
+</Data>
+<Data name="MethodEndMap">
+<Attribute>MethodEndMap</Attribute>
+<Structure>subnode</Structure>
+<Subscript>"MethodEndMap"</Subscript>
 </Data>
 <Data name="MethodMap">
 <Attribute>MethodMap</Attribute>
@@ -492,4 +725,3 @@ Storage Default
 }
 
 }
-

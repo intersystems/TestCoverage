@@ -10,6 +10,8 @@ Method TestMethodsInThisClass()
 	Do $$$AssertStatusOK($System.OBJ.Compile($classname(),"ck-d"))
 	Do $$$AssertStatusOK(##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tClass_".1.INT"))
 	If $$$AssertStatusOK(##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tClass_".CLS",,.tCodeUnit)) {
+		Do $$$AssertStatusOK(##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tClass_".PY",,.tPyCodeUnit))
+		Do tCodeUnit.UpdatePyExecutableLines(tClass, .tPyCodeUnit)
 		Set tKey = ""
 		For {
 			#dim tMethod As TestCoverage.Data.CodeSubUnit.Method
@@ -243,5 +245,13 @@ Method MethodWithComplexMacros(pStatus As %Status)
 	$$$ThrowOnError(pStatus)
 }
 
+/// Complexity: 3 (1 + for + if)
+ClassMethod ForLoopPython() [ Language = python ]
+{
+	for i in range(5):
+		if i > 4:
+			continue
+	return 1
 }
 
+}

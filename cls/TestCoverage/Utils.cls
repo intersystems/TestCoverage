@@ -78,7 +78,7 @@ ClassMethod GetTestCoverageTableList() As %List
 /// This is parallelized using <class>%SYSTEM.WorkMgr</class> for better performance. <br />
 /// <var>pRelevantRoutines</var> is a $ListBuild list of .INT routines that map back to a .CLS or .MAC
 /// routine with at least one executable line.
-ClassMethod Snapshot(pIntRoutines As %List, Output pRelevantRoutines As %List = "") As %Status
+ClassMethod Snapshot(pIntRoutines As %List, pPyRoutines As %List, Output pRelevantRoutines As %List = "", Output pPyRelevantRoutines As %List = "") As %Status
 {
 	Set tSC = $$$OK
 	Try {
@@ -94,7 +94,9 @@ ClassMethod Snapshot(pIntRoutines As %List, Output pRelevantRoutines As %List = 
 		
 		Set tSC = tSnapshotQueue.WaitForComplete()
 		$$$ThrowOnError(tSC)
-		
+
+
+
 		// See which routines are actually relevant (one or more lines mapping back to a class with 1 or more executable lines)
 		// There's no point in optimizing out .MAC routines; they'll always have code
 		Set tPointer = 0
@@ -102,18 +104,58 @@ ClassMethod Snapshot(pIntRoutines As %List, Output pRelevantRoutines As %List = 
 			Set tOther = ##class(%Library.RoutineMgr).GetOther(tIntRoutine,"INT",-1)
 			If (tOther '= "") && ($Piece(tOther,".",*) = "CLS") {
 				// With the code already cached, this will be faster.
+				// This also snapshots the compiled python routine with it if there is one
 				#dim tCodeUnit As TestCoverage.Data.CodeUnit
 				Set tSC = ##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tOther,,.tCodeUnit)
+				
 				If $$$ISERR(tSC) {
 					Continue // Non-fatal. Just skip it.
 				}
-				If '$BitCount(tCodeUnit.ExecutableLines,1) {
+				Set tName = tCodeUnit.Name // should be the same as tOther without the .cls, but if I have it already why not
+				Set SnapshottedClasses(tName) = 1
+				If ##class(TestCoverage.Manager).HasPython(tName) {
+					// take a snapshot of the compiled python file 
+					$$$ThrowOnError(##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tName_".PY",,.tPyCodeUnit))
+
+					// update the executable lines for the .cls file's python
+					$$$ThrowOnError(tCodeUnit.UpdatePyExecutableLines(tName, .tPyCodeUnit))
+
+					// update the pythonicity of the lines for the .cls file
+					$$$ThrowOnError(tCodeUnit.UpdatePythonLines(tName, .tPyCodeUnit))
+
+					// update the relevant python routines
+					If ($BitCount(tPyCodeUnit.ExecutableLines, 1)) {
+						set pPyRelevantRoutines = pPyRelevantRoutines _ $ListBuild(tName)
+					} ElseIf '$BitCount(tCodeUnit.ExecutableLines,1) {
+						// if there's no executable python and no executable objectscript, skip it 
+						Continue
+					}
+					
+				} ElseIf '$BitCount(tCodeUnit.ExecutableLines,1) {
 					// Skip it - no executable lines.
 					Continue
 				}
 			}
+			
 			Set pRelevantRoutines = pRelevantRoutines _ $ListBuild(tIntRoutine)
 		}
+
+		// Snapshot all the python routines and their corresponding classes that haven't already been snapshotted 
+		Set tPointer = 0
+		While $ListNext(pPyRoutines, tPointer, tPyRoutine) {
+			If ('$Data(SnapshottedClasses(tPyRoutine))) {
+				$$$ThrowOnError(##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tPyRoutine_".CLS",,.tCodeUnit))
+				$$$ThrowOnError(##class(TestCoverage.Data.CodeUnit).GetCurrentByName(tPyRoutine_".PY",,.tPyCodeUnit))
+				$$$ThrowOnError(tCodeUnit.UpdatePyExecutableLines(tPyRoutine, .tPyCodeUnit))
+				$$$ThrowOnError(tCodeUnit.UpdatePythonLines(tPyRoutine, .tPyCodeUnit))
+				
+				If ($BitCount(tPyCodeUnit.ExecutableLines, 1)) {
+					set pPyRelevantRoutines = pPyRelevantRoutines _ $ListBuild(tPyRoutine)
+				}
+				Set SnapshottedClasses(tPyRoutine) = 1
+			}
+		}
+
 		Write !
 	} Catch e {
 		Set tSC = e.AsStatus()
@@ -391,6 +433,122 @@ ClassMethod GetClassLineExecutableFlags(pClassName As %String, ByRef pDocumentTe
 	}
 }
 
+ClassMethod CodeArrayToList(ByRef pCodeArray, Output pDocumentText As %List)
+{
+	set pDocumentText = ""
+	for i=1:1:$get(pCodeArray(0)) {
+		set pDocumentText = pDocumentText _ $ListBuild(pCodeArray(i))
+	}
+	quit
+}
+
+/// returns a python tuple of (line to method info, method map info) 
+/// linetomethodinfo: a python builtins list where the item at index i is the name of the method that line i is a part of 
+/// methodmapinfo: a python builtins dict with key = method name, value = the line number of its definition
+ClassMethod GetPythonMethodMapping(pDocumentText) [ Language = python ]
+{
+	import iris
+	import ast 
+	source_lines = iris.cls('%SYS.Python').ToList(pDocumentText)
+	source_lines = [line + "\n" for line in source_lines]  # contains a list of each line of the source code
+
+	source = ''.join(source_lines)
+	tree = ast.parse(source)
+	line_function_map = [None] * (len(source_lines)+2)
+	method_map = {} # dictionary from the method name to its start and ending line number
+
+	class FunctionMapper(ast.NodeVisitor):
+		def __init__(self):
+			self.current_class = None
+			self.current_function = None
+			self.outermost_function = None # for objectscript purposes, we only care about the outer level functions/methods
+
+		def visit_ClassDef(self, node):
+			prev_class = self.current_class
+			self.current_class = node.name
+			self.generic_visit(node)
+			self.current_class = prev_class
+
+		def visit_FunctionDef(self, node):
+			if self.outermost_function is None:
+				self.outermost_function = node.name
+				method_map[node.name] = (node.lineno-1, node.end_lineno-1) 
+
+			self.current_function = node.name
+			for lineno in range(node.lineno, node.end_lineno + 1):
+				line_function_map[lineno-1] = self.outermost_function
+
+			self.generic_visit(node)
+			self.current_function = None
+			if self.outermost_function == node.name:
+				self.outermost_function = None
+
+	# preprocessing the ending line number for each function 
+	tree_with_line_numbers = ast.increment_lineno(tree, n=1)
+	for node in ast.walk(tree_with_line_numbers):
+		if isinstance(node, ast.FunctionDef):
+			node.end_lineno = node.body[-1].end_lineno
+
+	FunctionMapper().visit(tree)
+	return (line_function_map, method_map)
+}
+
+/// returns a python list with a 1 or 0 for subscript i indicating if line i is executable or not
+ClassMethod GetPythonLineExecutableFlags(pDocumentText) [ Language = python ]
+{
+	import iris
+	import ast 
+	source_lines = iris.cls('%SYS.Python').ToList(pDocumentText)
+	source_lines = [line + "\n" for line in source_lines]  # contains a list of each line of the source code
+
+	# create the abstract syntax tree for the code, and walk through it, getting each line of code in its context
+	source = ''.join(source_lines)
+	tree = ast.parse(source)
+	executable_lines = set() # stores the 1-indexed line numbers of the executable lines 
+
+	class ExecutableLineVisitor(ast.NodeVisitor):
+		def __init__(self):
+			self.function_depth = 0
+
+		def visit(self, node):
+			if hasattr(node, 'lineno'):
+				
+				# decorators for functions and class definitions are executable
+				if isinstance(node, (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef)):
+					decorators = [element.id for element in node.decorator_list]
+					num_decorators = len(decorators)
+					for i, element in enumerate(decorators):
+						conjectured_line = (node.lineno-1)-num_decorators+i # change this back if the line numbers aren't 0 indexed
+						if "@" + element in source_lines[conjectured_line]:
+							executable_lines.add(conjectured_line+1) # because back to 1-indexing
+					executable_lines.add(node.lineno)
+				elif isinstance(node, (ast.Call,
+										ast.Return, ast.Assign, ast.AugAssign, ast.AnnAssign,
+										ast.For, ast.AsyncFor, ast.While, ast.If, ast.With, 
+										ast.AsyncWith, ast.Raise, ast.Try, ast.Assert, 
+										ast.Import, ast.ImportFrom, ast.Pass, 
+										ast.Break, ast.Continue, ast.Delete, ast.Yield, 
+										ast.YieldFrom, ast.Await, ast.Nonlocal)): # all executable (determined manually)
+					executable_lines.add(node.lineno)
+				elif isinstance(node, ast.ExceptHandler): # except (but not finally) is executable
+					executable_lines.add(node.lineno) 
+				elif isinstance(node, ast.Expr) and not isinstance(node.value, ast.Constant): # expressions that aren't docstrings are executable
+					executable_lines.add(node.lineno)
+			self.generic_visit(node)
+	ExecutableLineVisitor().visit(tree)
+
+	output = [0] * (len(source_lines)+1)
+	for line in executable_lines:
+		output[line] = 1
+	output[1] = 0 # manually set the class definition to be not executable 
+	def print_executable_lines():
+		for i, line in enumerate(source_lines, start=1):
+			is_exec = output[i]
+			print(f"{i:2d} {'*' if is_exec else ' '} {line.rstrip()}")
+	# print_executable_lines()
+	return output
+}
+
 /// For a routine (.MAC/.INT) with code in <var>pDocumentText</var> as an integer-subscripted array of lines,
 /// returns an array (<var>pExecutableFlags</var>) subscripted by line with boolean flags indicating whether the corresponding line is executable.
 ClassMethod GetRoutineLineExecutableFlags(ByRef pDocumentText, Output pExecutableFlags)
@@ -400,7 +558,6 @@ ClassMethod GetRoutineLineExecutableFlags(ByRef pDocumentText, Output pExecutabl
 	For tDocLine=1:1:$Get(pDocumentText) {
 		Do tSourceStream.WriteLine(pDocumentText(tDocLine))
 	}
-	
 	Set tSC = ##class(%Library.SyntaxColorReader).FromCode(tSourceStream,"COS","A",.tSCReader)
 	$$$ThrowOnError(tSC)
 	
@@ -540,4 +697,3 @@ ClassMethod LineByLineMonitorResultClose(ByRef qHandle As %Binary) As %Status [ 
 }
 
 }
-
