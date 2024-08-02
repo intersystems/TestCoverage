@@ -5,7 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.2.0] - Unreleased
+## [4.0.0] - 2024-08-01
+
+### Changed
+- #29: As a consequence of this change, the minimum supported platform version is 2022.1
 
 ### Added 
 - #29: Track code coverage for embedded python methods in .cls files

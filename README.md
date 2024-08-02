@@ -7,9 +7,15 @@ Run your typical ObjectScript %UnitTest tests and see which lines of your code a
 
 ## Getting Started
 
-Note: a minimum platform version of InterSystems IRIS® data platform 2019.1 is required.
+A minimum platform version of InterSystems IRIS® data platform 2022.1 is required to run the latest version of TestCoverage.
 
-### Installation: ZPM
+| InterSystems Platform Version | Compatible TestCoverage Version                                                                    |
+|-------------------------------|----------------------------------------------------------------------------------------------------|
+| IRIS >=2022.1                 | 4.x                                                                                                |
+| IRIS <2022.1                  | 3.x                                                                                                |
+| Caché / Ensemble              | 2.x  (via artifacts available in [Releases](https://github.com/intersystems/TestCoverage/releases))|
+
+### Installation: IPM
 
 If you already have the [InterSystems Package Manager](https://openexchange.intersystems.com/package/InterSystems-Package-Manager-1), installation is as easy as:
 ```
@@ -32,19 +38,6 @@ First, clone or download the repository. Then run the following commands:
 Set root = "<path on filesystem to which repository was cloned/downloaded>"
 Do $System.OBJ.ImportDir(root,"*.inc;*.cls","ck",,1)
 ```
-
-### Installation: from Atelier
-
-Note: this assumes you have the Git plugin for Atelier installed.
-
-1. Right-click in the Atelier Explorer and select Import...
-2. Select the "Projects from Git" wizard under the "Git" folder, then click "Next"
-3. In the "Select Repository Source" dialog, select "Clone URI" and enter this repository's URI, then click "Next"
-4. Select the branch(es) you intend to build from, then click "Next"
-5. Select a local destination in which to store the code, then click "Next"
-6. Choose "import existing Eclipse projects" and select the TestCoverage project, then click "Next"
-7. Configure a connection for the project
-8. Synchronize the project with your selected namespace
 
 ### Security
 Note that, depending on your security settings, SQL privileges may be required for access to test coverage data. The relevant permissions may be granted by running:
@@ -104,6 +97,28 @@ Where:
 * `tPIDList` (optional) has a $ListBuild list of process IDs to monitor. If this is empty, all processes are monitored. If this is $ListBuild("Interop") or "Interoperability", all interoperability processes and the current process are monitored. By default, only the current process is monitored.
 * `tTiming` (optional) is 1 to capture execution time data for monitored classes/routines as well, or 0 (the default) to not capture this data.
 
+### Running Tests with Coverage via IPM
+
+Running unit tests with test coverage measurement via IPM is much simpler. Given a package `mycompany.foo`, a coverage.list file within its [unit test resource(s)](https://github.com/intersystems/ipm/wiki/03.-IPM-Manifest-(Module.xml)#unittest-or-test), and TestCoverage installed, tests can be run with coverage with:
+
+```
+zpm "mycompany.foo test -only -DUnitTest.ManagerClass=TestCoverage.Manager"
+```
+
+Additional "userparam" keys can be passed in the zpm command prefixed with `-DUnitTest.UserParam.` - for example:
+
+```
+    zpm "mycompany.foo test -only "_
+       "-verbose -DUnitTest.ManagerClass=TestCoverage.Manager -DUnitTest.JUnitOutput=/test-reports/junit.xml "_
+       "-DUnitTest.FailuresAreFatal=1 -DUnitTest.Manager=TestCoverage.Manager "_
+       "-DUnitTest.UserParam.CoverageReportClass=TestCoverage.Report.Cobertura.ReportGenerator "_
+       "-DUnitTest.UserParam.CoverageReportFile=/source/coverage.xml"
+```
+
+Note that it is best practice to put your unit tests in a separate directory from your source code, most commonly `/tests`.
+
+For more details and examples, see [this InterSystems Developer Community article series](https://community.intersystems.com/post/unit-tests-and-test-coverage-intersystems-package-manager).
+
 ### Viewing Results
 After running the tests, a URL is shown in the output at which you can view test coverage results. If the hostname/IP address in this URL is incorrect, you can fix it by changing the "WebServerName" setting in the management portal, at System Administration > Configuration > Additional Settings > Startup.
 
@@ -134,6 +149,7 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 ## Authors
 
 * **Tim Leavitt** - *Initial implementation* - [timleavitt](http://github.com/timleavitt) / [isc-tleavitt](http://github.com/isc-tleavitt)
+* **Chris Ge** - Embedded Python support and other improvements - [isc-cge](http://github.com/isc-cge)
 
 See also the list of [contributors](https://github.com/intersystems/TestCoverage/contributors) who participated in this project.
 
