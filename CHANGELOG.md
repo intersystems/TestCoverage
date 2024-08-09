@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [4.0.1] - 2024-08-09
 
-- #43: Fixed Python line 0 tracking for 2024.2 
+- #45: Fixed Python line 0 tracking for 2024.2 
 
 ## [4.0.0] - 2024-08-01
 
