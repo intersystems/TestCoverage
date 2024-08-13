@@ -82,9 +82,9 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 			$$$ThrowOnError(tSC)
 			Set tKnownHash = tMapToResult.%GetData(1)
 			Set tMapToUnit = ..HashOpen(tKnownHash,,.tSC)
-			$$$ThrowOnError(tSC)
-			$$$ThrowOnError(..GetCurrentByName(tMapToUnit.Name_"."_tMapToUnit.Type,pSourceNamespace,.tUpdatedUnit,.pCache))
-			If (tUpdatedUnit.Hash '= tKnownHash) {
+			$$$ThrowOnError(tSC)	
+			do ..GetCurrentHash(tMapToUnit.Name, tMapToUnit.Type, .tUpdatedHash, , )
+			If (tUpdatedHash '= tKnownHash) {
 				//Clear out old data and flag the need for an update.
 				Set tNeedsUpdate = 1
 				&sql(delete from TestCoverage_Data.CodeUnitMap where ToHash = :tKnownHash)
@@ -247,7 +247,6 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 /// Fill in the LineIsPython property of .cls files 
 Method UpdatePythonLines(pName As %String, ByRef pPyCodeUnit) As %Status
 {
-	
 	Set tSC = $$$OK
 	Set tOriginalNamespace = $Namespace
 	Set tInitTLevel = $TLevel
@@ -543,8 +542,9 @@ Method UpdateComplexity() As %Status
 
 		// python methods
 		If (##class(TestCoverage.Manager).HasPython(..Name)) {
-			do ##class(TestCoverage.Data.CodeUnit).GetCurrentByName(..Name _ ".PY", , .pPyCodeUnit, ) // need the source code for the python
-			set tDocumentText = pPyCodeUnit.Lines.Serialize()
+			do ..GetCurrentHash(..Name, "PY",  ,.tPyCodeArray, ) // need the source code for the python to pass into the method complexity calculator
+			do ##class(TestCoverage.Utils).CodeArrayToList(.tPyCodeArray, .tDocumentText)
+			set tDocumentText = tDocumentText _ $listbuild("")
 			set tMethodComplexities = ..GetPythonComplexities(tDocumentText)
 		}
 
