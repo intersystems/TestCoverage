@@ -44,7 +44,9 @@ Property LineIsPython As array Of %Boolean;
 /// Set to true if this class/routine is generated
 Property Generated As %Boolean [ InitialExpression = 0 ];
 
-/// 
+/// If the CodeUnit has changed since we last updated it, used to see if we need to call UpdateComplexity
+Property OutdatedComplexity As %Boolean [ InitialExpression = 1 ];
+
 /// Methods, branches, etc. within this unit of code.
 Relationship SubUnits As TestCoverage.Data.CodeSubUnit [ Cardinality = children, Inverse = Parent ];
 
@@ -87,6 +89,9 @@ ClassMethod GetCurrentByName(pInternalName As %String, pSourceNamespace As %Stri
 			If (tUpdatedHash '= tKnownHash) {
 				//Clear out old data and flag the need for an update.
 				Set tNeedsUpdate = 1
+				If $IsObject($Get(tMapToUnit)) {
+					set tMapToUnit.OutdatedComplexity = 1 
+				}
 				&sql(delete from TestCoverage_Data.CodeUnitMap where ToHash = :tKnownHash)
 				If (SQLCODE < 0) {
 					Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
@@ -521,9 +526,10 @@ Method UpdateSourceMap(pSourceNamespace As %String, ByRef pCache) As %Status
 			}
 		}
 		
-		// Update cyclomatic complexity for methods in the linked class
+		// Update cyclomatic complexity for methods in the linked class if we don't already have the newest version
 		Set tClass = $Order(tCodeUnits("CLS",""),1,tClassCodeUnit)
-		If $IsObject($Get(tClassCodeUnit)) {
+		If ($IsObject($Get(tClassCodeUnit)) && (tClassCodeUnit.OutdatedComplexity)){
+			set tClassCodeUnit.OutdatedComplexity = 0
 			$$$ThrowOnError(tClassCodeUnit.UpdateComplexity())
 		}
 	} Catch e {
@@ -689,6 +695,9 @@ Storage Default
 </Value>
 <Value name="5">
 <Value>Generated</Value>
+</Value>
+<Value name="6">
+<Value>OutdatedComplexity</Value>
 </Value>
 </Data>
 <Data name="LineIsPython">
