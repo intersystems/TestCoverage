@@ -404,17 +404,27 @@ Method UpdateSourceMap(pSourceNamespace As %String, ByRef pCache) As %Status
 				Set tMethodStart = ..MethodMap.GetAt(tMethod)
 				Set tMethodEnd = ..MethodEndMap.GetAt(tMethod)
 				Set tMethodName = tMethod
+
+				// tFullMap(py/int Line Number, absolute) = $lb("CLS", class name, method name, CLS/mac start line (relative to method), CLS/mac end line (relative to method))
 				Set tFullMap(tMethodStart) = $lb("CLS", tClass,tMethodName, -1, -1) ; -1 because the class 
 				; definition doesn't have the +1 offset from the { 
+
+				// there's a strange edge case where if the python method in the .CLS file starts with spaces, that's not captured in the Python compiled code
+				// so we have to find how many empty lines there are at the beginning
+				Set tEmptyLines = 0
+				while ($zstrip( pCLSCodeUnit.Lines.GetAt(tCLSMethodNum + 1 + tEmptyLines + 1), "<>W") = "") {
+					Set tEmptyLines = tEmptyLines + 1 
+				}
+
 				For i = tMethodStart+1:1:tMethodEnd {
 					Set tClassLineNum = i-tMethodStart
-					Set tFullMap(i) = $lb("CLS", tClass,tMethodName, tClassLineNum, tClassLineNum)
+					Set tFullMap(i) = $lb("CLS", tClass,tMethodName, tClassLineNum+tEmptyLines, tClassLineNum+tEmptyLines) 
 
 					// extra check to make sure that the lines we're mapping between are the same as expected
-					Set tClassLineCode = $zstrip(pCLSCodeUnit.Lines.GetAt(tCLSMethodNum + tClassLineNum + 1), "<>W")
+					Set tClassLineCode = $zstrip(pCLSCodeUnit.Lines.GetAt(tCLSMethodNum + 1 + tEmptyLines + tClassLineNum), "<>W")
 					Set tPyLineCode = $zstrip(..Lines.GetAt(i), "<>W")
 					if (tPyLineCode '= tClassLineCode) {
-						Set tSC = $$$ERROR($$$GeneralError,"Compiled .py code doesn't match .CLS python code at line " _ $char(10,13) _ tPyLineCode)
+						$$$ThrowStatus($$$ERROR($$$GeneralError,"Compiled .py code doesn't match .CLS python code at line " _ $char(10,13) _ tPyLineCode))
 					}
 				}
 				Do ..MethodMap.GetNext(.tMethod)
@@ -595,7 +605,7 @@ Method GetMethodOffset(pAbsoluteLine As %Integer, Output pMethod As %String, Out
 {
 }
 
-ClassMethod GetCurrentHash(pName As %String, pType As %String, Output pHash As %String, Output pCodeArray As %String, Output pCache) As %Status [ Private ]
+ClassMethod GetCurrentHash(pName As %String, pType As %String, Output pHash As %String, Output pCodeArray As %String, Output pCache) As %Status
 {
 	Set tSC = $$$OK
 	Try {

@@ -49,11 +49,13 @@ Method TestCodeUnitCreation()
 		Set tCodeGeneratorLine = tClsCodeUnit.MethodMap.GetAt("SampleCodeGenerator")
 		Set tNormalMethodLine = tClsCodeUnit.MethodMap.GetAt("SampleNormalMethod")
 		Set tPythonMethodLine = tClsCodeUnit.MethodMap.GetAt("SamplePythonMethod")
+		set tPythonWeirdSpacingMethodLine =  tClsCodeUnit.MethodMap.GetAt("PythonWeirdSpacing")
 		
 		Do $$$AssertNotEquals(tConstantReturnValueLine,"")
 		Do $$$AssertNotEquals(tCodeGeneratorLine,"")
 		Do $$$AssertNotEquals(tNormalMethodLine,"")
 		Do $$$AssertNotEquals(tPythonMethodLine,"")
+		Do $$$AssertNotEquals(tPythonWeirdSpacingMethodLine,"")
 
 		// test if LineIsPython is working properly
 		Do $$$AssertEquals(tClsCodeUnit.LineIsPython.GetAt(tPythonMethodLine+2), 1)
@@ -69,6 +71,10 @@ Method TestCodeUnitCreation()
 		Set tTestLines(tNormalMethodLine+3) = $ListBuild("SampleNormalMethod+2",,,tIntCodeUnit.Hash,tIntCodeUnit.MethodMap.GetAt(methodLabel)+2, "INT")
 		Set tTestLines(tPythonMethodLine+2) = $ListBuild("SamplePythonMethod+1",,,tPyCodeUnit.Hash,tPyCodeUnit.MethodMap.GetAt("SamplePythonMethod")+1, "PY")
 		Set tTestLines(tPythonMethodLine+3) = $ListBuild("SamplePythonMethod+2",,,tPyCodeUnit.Hash,tPyCodeUnit.MethodMap.GetAt("SamplePythonMethod")+2, "PY")
+		Set tTestLines(tPythonWeirdSpacingMethodLine+4) = $ListBuild("PythonWeirdSpacing+1",,,tPyCodeUnit.Hash,tPyCodeUnit.MethodMap.GetAt("PythonWeirdSpacing")+1, "PY")
+		Set tTestLines(tPythonWeirdSpacingMethodLine+5) = $ListBuild("PythonWeirdSpacing+2",,,tPyCodeUnit.Hash,tPyCodeUnit.MethodMap.GetAt("PythonWeirdSpacing")+2, "PY")
+		Set tTestLines(tPythonWeirdSpacingMethodLine+6) = $ListBuild("PythonWeirdSpacing+3",,,tPyCodeUnit.Hash,tPyCodeUnit.MethodMap.GetAt("PythonWeirdSpacing")+3, "PY")
+		
 		Set tLine = ""
 		For {
 			Set tLine = $Order(tTestLines(tLine),1,tInfo)
@@ -147,6 +153,15 @@ ClassMethod SamplePythonMethod() [ Language = python ]
 {
 	import iris
 	return 50
+}
+
+ClassMethod PythonWeirdSpacing() [ Language = python ]
+{
+
+
+	x = [0] * 10
+	x.append([50])
+	return [element * 2 for element in x]
 }
 
 }
