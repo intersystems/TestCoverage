@@ -5,12 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.0.1] - 2024-08-09
+## [4.0.1] - Unreleased
 
 ### Fixed 
 - #45: Fixed Python line 0 tracking for 2024.2 
 - #46: Fix for bug caused by UpdateComplexity calling GetCurrentByName unnecessarily and causing dependency issues
 - #47: Fixed mapping issue caused by empty lines at top of Python method not showing up in compiled Python
+- #48: When the Line-By-Line Monitor resumes after pausing, resume the Python tracer too 
 
 ## [4.0.0] - 2024-08-01
 
