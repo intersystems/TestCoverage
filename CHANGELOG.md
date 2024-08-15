@@ -7,7 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [4.0.1] - 2024-08-09
 
+### Fixed 
 - #45: Fixed Python line 0 tracking for 2024.2 
+- #46: Fix for bug caused by UpdateComplexity calling GetCurrentByName unnecessarily and causing dependency issues
+- #47: Fixed mapping issue caused by empty lines at top of Python method not showing up in compiled Python
 
 ## [4.0.0] - 2024-08-01
 
