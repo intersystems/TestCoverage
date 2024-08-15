@@ -123,6 +123,7 @@ Method StartWithScope(pRoutineList As %List, pPyClasses As %List, pMetricList As
 			$$$ThrowOnError(tSC)
 			If ..Paused {
 				$$$ThrowOnError(..Resume())
+				Do ..PyStartWithScope(pPyClasses)
 			}
 		}
 	} Catch e {

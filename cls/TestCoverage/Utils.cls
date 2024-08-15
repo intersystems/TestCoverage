@@ -1,4 +1,4 @@
-Include %occInclude
+Include (%occInclude, TestCoverage)
 
 IncludeGenerator TestCoverage
 
@@ -18,6 +18,7 @@ ClassMethod Clear() As %Status
 		Set tClasses("TestCoverage.Data.CodeUnit") = ""
 		Set tClasses("TestCoverage.Data.Coverage") = ""
 		Set tClasses("TestCoverage.Data.Run") = ""
+		kill $$$PyMonitorResults
 		
 		Set tClass = ""
 		For {
