@@ -8,9 +8,18 @@ Class TestCoverage.Utils.LineByLineMonitor Extends %Monitor.System.LineByLine
 /// True if the line-by-line monitor has been started.
 Property Started As %Boolean [ Calculated, Private, ReadOnly ];
 
+/// True if the Python trace has been set 
+Property PyStarted As %Boolean [ Calculated, Private, ReadOnly ];
+
 Method StartedGet() As %Boolean [ CodeMode = expression ]
 {
 $zu(84,8)
+}
+
+Method PyStartedGet() As %Boolean [ Language = python ]
+{
+	import sys
+	return sys.gettrace() is not None
 }
 
 /// True if the line-by-line monitor is paused
@@ -29,6 +38,8 @@ Property LastRoutineList As %List [ Private ];
 Property LastMetricList As %List [ Private ];
 
 Property LastProcessList As %List [ Private ];
+
+Property LastPythonList As %List [ Private ];
 
 /// This callback method is invoked by the <METHOD>%Close</METHOD> method to 
 /// provide notification that the current object is being closed.
@@ -98,20 +109,22 @@ Method StartWithScope(pRoutineList As %List, pPyClasses As %List, pMetricList As
 	Set tSC = $$$OK
 	Try {
 		Set ..PythonClassList = pPyClasses
-		Set tDifferentScope = (..LastRoutineList '= pRoutineList) || (..LastMetricList '= pMetricList) || (..LastProcessList '= pProcessList)
-		If tDifferentScope && ..Started {
+		Set tDifferentScope = (..LastRoutineList '= pRoutineList) || (..LastMetricList '= pMetricList) || (..LastProcessList '= pProcessList) || (..LastPythonList '= pPyClasses)
+		If tDifferentScope && (..Started || ..PyStarted) {
 			// If we need to track different routines/metrics/processes, need to stop the monitor before restarting with the new context.
-			Do ..Stop()
-			Do ..PyStop()
+			If (..Started) {
+				Do ..Stop()
+			}
+			Do ..PyStop() // setting the trace to None can and should always be done 
 			Set ..LastRoutineList = pRoutineList
 			Set ..LastMetricList = pMetricList
 			Set ..LastProcessList = pProcessList
+			Set ..LastPythonList = pPyClasses
 		}
 		
-		If '..Started {
-			Do ..PyClearCounters()
+		// take care of starting the ObjectScript Monitor
+		If ('..Started && $ListLength(pRoutineList) '= 0) {
 			Set tSC = ..Start(pRoutineList, pMetricList, pProcessList)
-			Do ..PyStartWithScope(pPyClasses)
 			If $System.Status.Equals(tSC,$$$ERRORCODE($$$MonitorMemoryAlloc)) {
 				// Construct a more helpful error message.
 				Set tSC = $$$EMBEDSC(..CheckAvailableMemory($ListLength(pProcessList),$ListLength(pRoutineList),1),tSC)
@@ -119,12 +132,20 @@ Method StartWithScope(pRoutineList As %List, pPyClasses As %List, pMetricList As
 			$$$ThrowOnError(tSC)
 		} Else {
 			// If the monitor was already running, clear the counters.
-			Set tSC = ..ClearCounters()
-			$$$ThrowOnError(tSC)
-			If ..Paused {
-				$$$ThrowOnError(..Resume())
-				Do ..PyStartWithScope(pPyClasses)
+			if (..Started) {
+				Set tSC = ..ClearCounters()
+				$$$ThrowOnError(tSC)
 			}
+			If (..Paused && $ListLength(pRoutineList) '= 0){
+				$$$ThrowOnError(..Resume())	
+			}
+		}
+
+		If ('..PyStarted && $ListLength(pPyClasses) '= 0) {
+			// whether we're resuming or restarting, we either way want to clear counters
+			// since StoreIntCoverage should have already 
+			Do ..PyClearCounters()
+			Do ..PyStartWithScope(pPyClasses)
 		}
 	} Catch e {
 		Set tSC = e.AsStatus()

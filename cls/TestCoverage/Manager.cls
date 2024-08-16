@@ -528,10 +528,10 @@ Method EndCoverageTracking(pTestSuite As %String = "", pTestClass As %String = "
 	Set tSC = $$$OK
 	Try {
 		If ((..CoverageTargets '= "") || (..PyCoverageTargets '= "")) {
-			// Pause the monitor.
-			Set tSC = ..Monitor.Pause()
-			Do ##class(TestCoverage.Utils.LineByLineMonitor).PyStop()
-			If $$$ISERR(tSC) {
+			if (..Monitor.Started) {
+				// Pause the monitor.
+				Set tSC = ..Monitor.Pause()
+				If $$$ISERR(tSC) {
 				If $System.Status.GetErrorCodes(tSC) = $$$MonitorNotRunning {
 					// Not really an error, and nothing to do in this case.
 					Set tSC = $$$OK
@@ -539,6 +539,11 @@ Method EndCoverageTracking(pTestSuite As %String = "", pTestClass As %String = "
 				} Else {
 					$$$ThrowStatus(tSC)
 				}
+			}
+			}
+			
+			if (..Monitor.PyStarted) {
+				Do ##class(TestCoverage.Utils.LineByLineMonitor).PyStop()
 			}
 			
 			Set tTarget = $ListBuild($$$TestPathAllTests) // detail = 0
@@ -719,7 +724,12 @@ ClassMethod OnAfterAllTests(manager As TestCoverage.Manager, dir As %String, ByR
 				Do manager.ListenerManager.BroadCastToAll(tObj)
 			}
 		}
-		Do manager.Monitor.Stop()
+		if (manager.Monitor.Started) {
+			Do manager.Monitor.Stop()
+		}
+		if (manager.Monitor.PyStarted) {
+			Do manager.Monitor.PyStop()
+		}
 	} Catch e {
 		Set tSC = e.AsStatus()
 	}
