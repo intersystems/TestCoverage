@@ -95,7 +95,7 @@ Property ListenerManager As TestCoverage.Listeners.ListenerManager;
 /// </ul>
 /// Granular data is stored in <class>TestCoverage.Data.Coverage</class>; aggregated data is stored per class in <class>TestCoverage.Data.Aggregate.ByCodeUnit</class> and for the whole run in <class>TestCoverage.Data.Aggregate.ByRun</class>.
 /// @API.Method
-ClassMethod RunAllTests(pPackage As %String = "", pLogFile As %String = "", pCoverageClasses As %List = "", pCoverageRoutines As %List = "", pCoverageLevel As %Integer = 1, ByRef pLogIndex As %Integer, pSourceNamespace As %String = {$Namespace}, pPIDList = {$ListBuild($Job)}, pTiming As %Boolean = 0) As %Status
+ClassMethod RunAllTests(pPackage As %String = "", pLogFile As %String = "", pCoverageClasses As %List = "", pCoverageRoutines As %List = "", pCoverageLevel As %Integer = 1, ByRef pLogIndex As %Integer, pSourceNamespace As %String = {$Namespace}, pPIDList = {$ListBuild($Job)}, pTiming As %Boolean = 0, pListenerManager As TestCoverage.Listeners.ListenerManager = "", pPyModules As %List = "") As %Status
 {
 	#dim tUnitTestManager As TestCoverage.Manager
 	Set tSuccess = 1
@@ -117,6 +117,8 @@ ClassMethod RunAllTests(pPackage As %String = "", pLogFile As %String = "", pCov
 		Set tCoverageParams("SourceNamespace") = pSourceNamespace
 		Set tCoverageParams("ProcessIDs") = pPIDList
 		Set tCoverageParams("Timing") = pTiming
+		Set tCoverageParams("ListenerManager") = pListenerManager
+		Set tCoverageParams("PyModules") = pPyModules
 		Do ..RunTest(tTestSuite,tSpec,.tCoverageParams)
 		
 		Set tFailed = 0
@@ -629,6 +631,7 @@ ClassMethod OnBeforeAllTests(manager As TestCoverage.Manager, dir As %String, By
 		Set tSourceNamespace = $Get(userparam("SourceNamespace"),$Namespace)
 		Set tListenerManager = $Get(userparam("ListenerManager"))
 		Set tProcessIDs = $Get(userparam("ProcessIDs"),$ListBuild($Job))
+		Set tPyModules = $Get(userparam("PyModules")) 
 		If (tProcessIDs = "*") {
 			Set tProcessIDs = ""
 		} ElseIf ((tProcessIDs = "Interoperability") || (tProcessIDs = "interoperability")) {
@@ -687,6 +690,11 @@ ClassMethod OnBeforeAllTests(manager As TestCoverage.Manager, dir As %String, By
 			set tObj = {"message": "Starting tests"}
 			Do manager.ListenerManager.BroadCastToAll(tObj)
 		}
+		set tPointer = 0
+		while $ListNext(tPyModules, tPointer, tCurModule) {
+			do ##class(%SYS.Python).Import(tCurModule)
+		}
+		
 		If (manager.CoverageDetail = 0) {
 			Set tSC = manager.StartCoverageTracking()
 			$$$ThrowOnError(tSC)

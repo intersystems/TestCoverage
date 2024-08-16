@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - #46: Fix for bug caused by UpdateComplexity calling GetCurrentByName unnecessarily and causing dependency issues
 - #47: Fixed mapping issue caused by empty lines at top of Python method not showing up in compiled Python
 - #48: When the Line-By-Line Monitor resumes after pausing, resume the Python tracer too 
+- #49: Added user parameter for preloading python modules (fixes problem of pandas breaking sys.settrace on first import)
 
 ## [4.0.0] - 2024-08-01
 
