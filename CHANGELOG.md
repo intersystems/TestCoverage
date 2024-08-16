@@ -10,7 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - #51: Don't start (and stop) the ObjectScript and Python monitors if there are no ObjectScript/Python routines being tracked respectively, fixes error from trying to start/stop the %Monitor.System.LineByLine with no routines 
 
-
 ## [4.0.1] - 2024-08-16
 
 ### Fixed 
