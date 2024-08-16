@@ -101,7 +101,7 @@ Where:
 * `tPIDList` (optional) has a $ListBuild list of process IDs to monitor. If this is empty, all processes are monitored. If this is $ListBuild("Interop") or "Interoperability", all interoperability processes and the current process are monitored. By default, only the current process is monitored.
 * `tTiming` (optional) is 1 to capture execution time data for monitored classes/routines as well, or 0 (the default) to not capture this data.
 * `tListenerManager` (optional)  is an instance of TestCoverage.Listeners.ListenerManager that allows downstream applications to listen to the completion of unit test suites/cases/methods. It should use the AddListener method to populate with listeners that extend TestCoverage.Listeners.ListenerInterface. See [isc.perf.ui](https://github.com/intersystems/isc-perf-ui) for an example usage
-* `tPyModules` a $ListBuild list of Python module names the covered code uses that should be imported before the unit tests are run. This is for modules like pandas and scikit-learn, whose import sometimes breaks sys.settrace 
+* `tPyModules` a $ListBuild list of Python module names the covered code uses that should be imported before the unit tests are run. This is for modules like `pandas` and `sklearn`, whose import sometimes breaks sys.settrace 
 
 
 ### Running Tests with Coverage via IPM
