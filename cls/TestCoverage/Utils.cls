@@ -487,11 +487,6 @@ ClassMethod GetPythonMethodMapping(pDocumentText) [ Language = python ]
 		@staticmethod
 		def get_end_line(node):
 			return max(child.lineno for child in ast.walk(node) if hasattr(child, 'lineno'))
-	#; # preprocessing the ending line number for each function 
-	#; tree_with_line_numbers = ast.increment_lineno(tree, n=1)
-	#; for node in ast.walk(tree_with_line_numbers):
-	#; 	if isinstance(node, ast.FunctionDef):
-	#; 		node.end_lineno = node.body[-1].end_lineno
 
 	FunctionMapper().visit(tree)
 	print(source_lines)
