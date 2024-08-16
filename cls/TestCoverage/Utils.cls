@@ -477,7 +477,7 @@ ClassMethod GetPythonMethodMapping(pDocumentText) [ Language = python ]
 				method_map[node.name] = (start_line, end_line)
 
 			self.current_function = node.name
-			for lineno in range(node.lineno, node.end_lineno + 1):
+			for lineno in range(node.lineno, self.get_end_line(node) + 1):
 				line_function_map[lineno-1] = self.outermost_function
 
 			self.generic_visit(node)
