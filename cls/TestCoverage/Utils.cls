@@ -489,8 +489,6 @@ ClassMethod GetPythonMethodMapping(pDocumentText) [ Language = python ]
 			return max(child.lineno for child in ast.walk(node) if hasattr(child, 'lineno'))
 
 	FunctionMapper().visit(tree)
-	print(source_lines)
-	print(method_map)
 	return (line_function_map, method_map)
 }
 
