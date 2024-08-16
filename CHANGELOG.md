@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed 
 - #52: Method mapping code now doesn't use AST's endline_no property to support older python versions 
+- #53: Ignore traced commands from code without a class name
 
 ## [4.0.2] - 2024-08-16
 
