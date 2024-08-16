@@ -57,12 +57,16 @@ zw ##class(TestCoverage.Utils).GrantSQLReadPermissions("_PUBLIC")
 ### Running Tests with Coverage
 Generally speaking, set `^UnitTestRoot`, and then call `##class(TestCoverage.Manager).RunTest()` the same you would call `##class(%UnitTest.Manager).RunTest()`. For more information on InterSystems' %UnitTest framework, see the [tutorial](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=TUNT) and/or the [class reference for %UnitTest.Manager](https://docs.intersystems.com/irislatest/csp/documatic/%25CSP.Documatic.cls?PAGE=CLASS&LIBRARY=%25SYS&CLASSNAME=%25UnitTest.Manager).
 
-The "userparam" argument can be used to pass information about code coverage data collection. For example:
+The "userparam" argument can be used to pass optional information about code coverage data collection. For example:
 
 ```
 Set tCoverageParams("CoverageClasses") = <$ListBuild list or %DynamicArray of class names for which code coverage data should be collected>
 Set tCoverageParams("CoverageRoutines") = <$ListBuild list or %DynamicArray of routine names for which code coverage data should be collected>
 Set tCoverageParams("CoverageDetail") = <0 to track code coverage overall; 1 to track it per test suite (the default); 2 to track it per test class; 3 to track it per test method.>
+Set tCoverageParams("ProcessIDs") = <$ListBuild list of process IDs to monitor, or "Interoperability"> 
+Set tCoverageParams("Timing") = <1 to capture timing data, 0 to not> 
+Set tCoverageParams("PyModules") = <$ListBuild list of Python module names to preload> 
+Set tCoverageParams("ListenerManager") = <instance of TestCoverage.Listeners.ListenerManager>) 
 Do ##class(TestCoverage.Manager).RunTest(,,.tCoverageParams)
 ```
 
@@ -96,6 +100,9 @@ Where:
 * `tSourceNamespace` (optional) specifies the namespace in which classes were compiled, defaulting to the current namespace. This may be required to retrieve some metadata.
 * `tPIDList` (optional) has a $ListBuild list of process IDs to monitor. If this is empty, all processes are monitored. If this is $ListBuild("Interop") or "Interoperability", all interoperability processes and the current process are monitored. By default, only the current process is monitored.
 * `tTiming` (optional) is 1 to capture execution time data for monitored classes/routines as well, or 0 (the default) to not capture this data.
+* `tListenerManager` (optional)  is an instance of TestCoverage.Listeners.ListenerManager that allows downstream applications to listen to the completion of unit test suites/cases/methods. It should use the AddListener method to populate with listeners that extend TestCoverage.Listeners.ListenerInterface. See [isc.perf.ui](https://github.com/intersystems/isc-perf-ui) for an example usage
+* `tPyModules` a $ListBuild list of Python module names the covered code uses that should be imported before the unit tests are run. This is for modules like pandas and scikit-learn, whose import sometimes breaks sys.settrace 
+
 
 ### Running Tests with Coverage via IPM
 
