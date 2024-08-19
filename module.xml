@@ -2,7 +2,7 @@
 <Export generator="Cache" version="25">
 <Document name="TestCoverage.ZPM"><Module>
   <Name>TestCoverage</Name>
-  <Version>4.0.2</Version>
+  <Version>4.0.3</Version>
   <Description>Run your typical ObjectScript %UnitTest tests and see which lines of your code are executed. Includes Cobertura-style reporting for use in continuous integration tools.</Description>
   <Packaging>module</Packaging>
   <Resource Name="TestCoverage.PKG" Directory="cls" />

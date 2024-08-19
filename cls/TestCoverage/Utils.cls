@@ -451,9 +451,8 @@ ClassMethod GetPythonMethodMapping(pDocumentText) [ Language = python ]
 	import iris
 	import ast 
 	source_lines = iris.cls('%SYS.Python').ToList(pDocumentText)
-	source_lines = [line + "\n" for line in source_lines]  # contains a list of each line of the source code
 
-	source = ''.join(source_lines)
+	source = '\n'.join(source_lines)
 	tree = ast.parse(source)
 	line_function_map = [None] * (len(source_lines)+2)
 	method_map = {} # dictionary from the method name to its start and ending line number
@@ -473,22 +472,21 @@ ClassMethod GetPythonMethodMapping(pDocumentText) [ Language = python ]
 		def visit_FunctionDef(self, node):
 			if self.outermost_function is None:
 				self.outermost_function = node.name
-				method_map[node.name] = (node.lineno-1, node.end_lineno-1) 
+				start_line = node.lineno
+				end_line = self.get_end_line(node)
+				method_map[node.name] = (start_line, end_line)
 
 			self.current_function = node.name
-			for lineno in range(node.lineno, node.end_lineno + 1):
+			for lineno in range(node.lineno, self.get_end_line(node) + 1):
 				line_function_map[lineno-1] = self.outermost_function
 
 			self.generic_visit(node)
 			self.current_function = None
 			if self.outermost_function == node.name:
 				self.outermost_function = None
-
-	# preprocessing the ending line number for each function 
-	tree_with_line_numbers = ast.increment_lineno(tree, n=1)
-	for node in ast.walk(tree_with_line_numbers):
-		if isinstance(node, ast.FunctionDef):
-			node.end_lineno = node.body[-1].end_lineno
+		@staticmethod
+		def get_end_line(node):
+			return max(child.lineno for child in ast.walk(node) if hasattr(child, 'lineno'))
 
 	FunctionMapper().visit(tree)
 	return (line_function_map, method_map)

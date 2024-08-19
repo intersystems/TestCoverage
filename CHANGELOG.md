@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.3] - Unreleased
+
+### Changed 
+- #52: Method mapping code now doesn't use AST's endline_no property to support older python versions 
+- #53: Ignore traced commands from code without a class name
+
 ## [4.0.2] - 2024-08-16
 
 ### Fixed
