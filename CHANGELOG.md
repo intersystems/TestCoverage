@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.0.4] - Unreleased
 
 ### Fixed 
-- #54: Defend against possible configuration-dependent possible SQL exceptions in mapping INT to MAC/CLS coverage
+- #54: Defend against possible configuration-dependent SQL exceptions in mapping INT to MAC/CLS coverage
 
 ## [4.0.3] - 2024-08-19
 
