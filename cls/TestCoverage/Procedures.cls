@@ -82,7 +82,9 @@ ClassMethod ListToBit(pSource As %List) As %Binary [ SqlName = LIST_TO_BIT, SqlP
 	Set tResult = ""
 	Set tPointer = 0
 	While $ListNext(pSource,tPointer,tBitPosition) {
-		Set $Bit(tResult,tBitPosition) = 1
+		If $Data(tBitPosition)#2 && (tBitPosition '= "") {
+			Set $Bit(tResult,tBitPosition) = 1
+		}
 	}
 	Quit tResult
 }
