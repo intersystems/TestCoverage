@@ -77,7 +77,7 @@ jobs:
         # all tests passed.
         fail: false
     - name: Attach the report
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: ${{ steps.xunit-viewer.outputs.report-name }}
