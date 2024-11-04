@@ -128,11 +128,11 @@ ClassMethod MapRunCoverage(pRunIndex As %Integer) As %Status
 			Set tSQLStatement = "INSERT OR UPDATE %NOLOCK %NOCHECK INTO TestCoverage_Data.Coverage_"_tMetric_" "_
 				"(Coverage,element_key,"_tMetric_") "_
 				"SELECT target.ID,map.ToLine,NVL(oldMetric."_tMetric_",0) + SUM(metric."_tMetric_") "_
-				"FROM TestCoverage_Data.Coverage source "_
-				"JOIN TestCoverage_Data.CodeUnitMap map "_
-				"	ON source.Hash = map.FromHash "_
+				"FROM %INORDER TestCoverage_Data.Coverage source "_
 				"JOIN TestCoverage_Data.Coverage_"_tMetric_" metric "_
 				"	ON metric.Coverage = source.ID "_
+				"JOIN TestCoverage_Data.CodeUnitMap map "_
+				"	ON source.Hash = map.FromHash "_
 				"	AND metric.element_key = map.FromLine "_
 				"JOIN TestCoverage_Data.Coverage target "_
 				"	ON target.Run = source.Run "_
