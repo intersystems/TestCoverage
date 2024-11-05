@@ -33,8 +33,7 @@ jobs:
       - name: Install TestCoverage
         run: |
           docker exec --interactive $instance iris session $instance << EOF
-            Set root = "/home/runner/work/TestCoverage/TestCoverage"
-            Do $System.OBJ.ImportDir(root,"*.inc;*.cls","ck",,1)
+            zpm "load -verbose /home/runner/work/TestCoverage/TestCoverage/"
           EOF
           # Workaround for permissions issues in TestCoverage (creating directory for source export)
           chmod 777 $GITHUB_WORKSPACE
