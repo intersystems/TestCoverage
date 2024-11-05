@@ -33,7 +33,7 @@ jobs:
       - name: Install TestCoverage
         run: |
           docker exec --interactive $instance iris session $instance << EOF
-            zpm "load -verbose /home/runner/work/TestCoverage/TestCoverage/"
+            zpm "load -verbose /home/runner/work/TestCoverage/TestCoverage/":1:1
           EOF
           # Workaround for permissions issues in TestCoverage (creating directory for source export)
           chmod 777 $GITHUB_WORKSPACE
