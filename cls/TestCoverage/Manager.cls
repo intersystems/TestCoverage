@@ -592,6 +592,7 @@ Method OnAfterSaveResult(ByRef userparam)
 {
 	Try {
 		Quit:'$IsObject(..Run)
+		Do ##super(.userparam)
 		
 		// Associate to unit test results.
 		Do ..Run.TestResultsSetObjectId(..LogIndex)
@@ -630,6 +631,7 @@ ClassMethod OnBeforeAllTests(manager As TestCoverage.Manager, dir As %String, By
 {
 	Set tSC = $$$OK
 	Try {
+		Do ##super(.manager, .dir, .qstruct, .userparam)
 		Set tCoverageClasses = $Get(userparam("CoverageClasses"))
 		Set tCoverageRoutines = $Get(userparam("CoverageRoutines"))
 		Set tCoverageDetail = $Get(userparam("CoverageDetail"))
@@ -717,6 +719,7 @@ ClassMethod OnAfterAllTests(manager As TestCoverage.Manager, dir As %String, ByR
 {
 	Set tSC = $$$OK
 	Try {
+		Do ##super(.manager, .dir, .qstruct, .userparam)
 		If (manager.CoverageDetail = 0) {
 			Set tSC = manager.EndCoverageTracking()
 			if (manager.ListenerManager) {
@@ -742,6 +745,7 @@ Method OnBeforeAutoLoad(dir As %String, suite As %String, testspec As %String, B
 {
 	Set tSC = $$$OK
 	Try {
+		Do ##super(.dir, .suite, .testspec, .qstruct)
 		// TODO: Flag to capture code coverage of compiling autoload classes? (e.g., to cover generators?)
 	} Catch e {
 		Set tSC = e.AsStatus()
@@ -756,6 +760,7 @@ Method OnBeforeTestSuite(dir As %String, suite As %String, testspec As %String, 
 {
 	Set tSC = $$$OK
 	Try {
+		Do ##super(.dir, .suite, .testspec, .qstruct)
 		If ..DynamicTargets && (dir '= "") {
 			// Determine coverage targets based on directory contents (looking for coverage.list in that directory or the nearest ancestor containing it).
 			Set tSC = ..UpdateCoverageTargetsForTestDirectory(dir)
@@ -785,6 +790,7 @@ Method OnAfterTestSuite(dir As %String, suite As %String, testspec As %String, B
 {
 	Set tSC = $$$OK
 	Try {
+		Do ##super(.dir, .suite, .testspec, .qstruct)
 		
 		If (..CoverageDetail = 1) {
 			Set tSC = ..EndCoverageTracking($Case(suite,"":"(root)",:suite))
@@ -806,6 +812,7 @@ Method OnBeforeTestCase(suite As %String, class As %String) As %Status
 {
 	Set tSC = $$$OK
 	Try {
+		Do ##super(.suite, .class, .testcase)
 		Set ..CurrentTestClass = class
 		Set ..CurrentTestMethod = ""
 		if (..ListenerManager) {
@@ -829,6 +836,7 @@ Method OnAfterTestCase(suite As %String, class As %String) As %Status
 {
 	Set tSC = $$$OK
 	Try {
+		Do ##super(.suite, .class, .testcase)
 		If (..CoverageDetail = 2) {
 			Set tSC = ..EndCoverageTracking(suite, class)
 		}
@@ -850,6 +858,7 @@ Method OnBeforeOneTest(suite As %String, class As %String, method As %String) As
 {
 	Set tSC = $$$OK
 	Try {
+		Do ##super(.suite, .class, .method)
 		Set ..CurrentTestMethod = method
 		if (..ListenerManager) {
 			set tObj = {"message": "Starting test method: "}
@@ -873,6 +882,7 @@ Method OnAfterOneTest(suite As %String, class As %String, method As %String) As 
 {
 	Set tSC = $$$OK
 	Try {
+		Do ##super(.suite, .class, .method)
 		If (..CoverageDetail = 3) {
 			Set tSC = ..EndCoverageTracking(suite, class, method)
 		}
