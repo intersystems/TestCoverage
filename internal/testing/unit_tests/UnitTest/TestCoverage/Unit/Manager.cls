@@ -6,7 +6,8 @@ Parameter AutoUserNames As STRING = "TestA;TestB;TestC";
 Method TestAutoUserNames()
 {
     // verify the 3 usernames are automatically created
-    ZNSPACE "%SYS"
+    New $NAMESPACE
+    Set $NAMESPACE = "%SYS"
 
     Do $$$AssertTrue(##class(Security.Users).Exists("TestA"))
     Do $$$AssertTrue(##class(Security.Users).Exists("TestB"))
