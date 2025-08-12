@@ -592,6 +592,7 @@ Method OnAfterSaveResult(ByRef userparam)
 {
 	Try {
 		Quit:'$IsObject(..Run)
+		Do ##super(.userparam)
 		
 		// Associate to unit test results.
 		Do ..Run.TestResultsSetObjectId(..LogIndex)
@@ -630,6 +631,7 @@ ClassMethod OnBeforeAllTests(manager As TestCoverage.Manager, dir As %String, By
 {
 	Set tSC = $$$OK
 	Try {
+		Set tSC = ##super(.manager, .dir, .qstruct, .userparam)
 		Set tCoverageClasses = $Get(userparam("CoverageClasses"))
 		Set tCoverageRoutines = $Get(userparam("CoverageRoutines"))
 		Set tCoverageDetail = $Get(userparam("CoverageDetail"))
@@ -717,8 +719,12 @@ ClassMethod OnAfterAllTests(manager As TestCoverage.Manager, dir As %String, ByR
 {
 	Set tSC = $$$OK
 	Try {
+		Set tSC = ##super(.manager, .dir, .qstruct, .userparam)
 		If (manager.CoverageDetail = 0) {
-			Set tSC = manager.EndCoverageTracking()
+			Set sc = manager.EndCoverageTracking()
+			If $$$ISERR(sc) {
+				Set tSC = $$$ADDSC(tSC,sc)
+			}
 			if (manager.ListenerManager) {
 				set tObj = {"message": "All tests complete"}
 				Do manager.ListenerManager.BroadCastToAll(tObj)
@@ -742,6 +748,7 @@ Method OnBeforeAutoLoad(dir As %String, suite As %String, testspec As %String, B
 {
 	Set tSC = $$$OK
 	Try {
+		Set tSC = ##super(.dir, .suite, .testspec, .qstruct)
 		// TODO: Flag to capture code coverage of compiling autoload classes? (e.g., to cover generators?)
 	} Catch e {
 		Set tSC = e.AsStatus()
@@ -756,6 +763,7 @@ Method OnBeforeTestSuite(dir As %String, suite As %String, testspec As %String, 
 {
 	Set tSC = $$$OK
 	Try {
+		Set tSC = ##super(.dir, .suite, .testspec, .qstruct)
 		If ..DynamicTargets && (dir '= "") {
 			// Determine coverage targets based on directory contents (looking for coverage.list in that directory or the nearest ancestor containing it).
 			Set tSC = ..UpdateCoverageTargetsForTestDirectory(dir)
@@ -770,7 +778,10 @@ Method OnBeforeTestSuite(dir As %String, suite As %String, testspec As %String, 
 			Do ..ListenerManager.BroadCastToAll(tObj)
 		}
 		If (..CoverageDetail = 1) {
-			Set tSC = ..StartCoverageTracking()
+			Set sc = ..StartCoverageTracking()
+			If $$$ISERR(sc) {
+				Set tSC = $$$ADDSC(tSC,sc)
+			}
 		}
 		
 	} Catch e {
@@ -785,9 +796,13 @@ Method OnAfterTestSuite(dir As %String, suite As %String, testspec As %String, B
 {
 	Set tSC = $$$OK
 	Try {
+		Set tSC = ##super(.dir, .suite, .testspec, .qstruct)
 		
 		If (..CoverageDetail = 1) {
-			Set tSC = ..EndCoverageTracking($Case(suite,"":"(root)",:suite))
+			Set sc = ..EndCoverageTracking($Case(suite,"":"(root)",:suite))
+			If $$$ISERR(sc) {
+				Set tSC = $$$ADDSC(tSC,sc)
+			}
 		}
 		if (..ListenerManager) {
 			set tObj = {"message": "Finished test suite: "}
@@ -806,6 +821,7 @@ Method OnBeforeTestCase(suite As %String, class As %String) As %Status
 {
 	Set tSC = $$$OK
 	Try {
+		Set tSC = ##super(.suite, .class, .testcase)
 		Set ..CurrentTestClass = class
 		Set ..CurrentTestMethod = ""
 		if (..ListenerManager) {
@@ -815,7 +831,10 @@ Method OnBeforeTestCase(suite As %String, class As %String) As %Status
 			Do ..ListenerManager.BroadCastToAll(tObj)
 		}
 		If (..CoverageDetail = 2) {
-			Set tSC = ..StartCoverageTracking()
+			Set sc = ..StartCoverageTracking()
+			If $$$ISERR(sc) {
+				Set tSC = $$$ADDSC(tSC,sc)
+			}
 		}
 	} Catch e {
 		Set tSC = e.AsStatus()
@@ -829,8 +848,12 @@ Method OnAfterTestCase(suite As %String, class As %String) As %Status
 {
 	Set tSC = $$$OK
 	Try {
+		Set tSC = ##super(.suite, .class, .testcase)
 		If (..CoverageDetail = 2) {
-			Set tSC = ..EndCoverageTracking(suite, class)
+			Set sc = ..EndCoverageTracking(suite, class)
+			If $$$ISERR(sc) {
+				Set tSC = $$$ADDSC(tSC,sc)
+			}
 		}
 		if (..ListenerManager) {
 			set tObj = {"message": "Finished test case: "}
@@ -850,6 +873,7 @@ Method OnBeforeOneTest(suite As %String, class As %String, method As %String) As
 {
 	Set tSC = $$$OK
 	Try {
+		Set tSC = ##super(.suite, .class, .method)
 		Set ..CurrentTestMethod = method
 		if (..ListenerManager) {
 			set tObj = {"message": "Starting test method: "}
@@ -859,7 +883,10 @@ Method OnBeforeOneTest(suite As %String, class As %String, method As %String) As
 			Do ..ListenerManager.BroadCastToAll(tObj)
 		}
 		If (..CoverageDetail = 3) {
-			Set tSC = ..StartCoverageTracking()
+			Set sc = ..StartCoverageTracking()
+			If $$$ISERR(sc) {
+				Set tSC = $$$ADDSC(tSC,sc)
+			}
 		}
 	} Catch e {
 		Set tSC = e.AsStatus()
@@ -873,8 +900,12 @@ Method OnAfterOneTest(suite As %String, class As %String, method As %String) As 
 {
 	Set tSC = $$$OK
 	Try {
+		Set tSC = ##super(.suite, .class, .method)
 		If (..CoverageDetail = 3) {
-			Set tSC = ..EndCoverageTracking(suite, class, method)
+			Set sc = ..EndCoverageTracking(suite, class, method)
+			If $$$ISERR(sc) {
+				Set tSC = $$$ADDSC(tSC,sc)
+			}
 		}
 		if (..ListenerManager) {
 			set tObj = {"message": "Finished test method: "}
