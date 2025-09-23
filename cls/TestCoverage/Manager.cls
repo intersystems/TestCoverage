@@ -425,13 +425,14 @@ ClassMethod GetCoverageTargetsForFile(pFileName As %String, Output pTargetArray)
 	
 	Set tFileStream = ##class(%Stream.FileCharacter).%New()
 	Do tFileStream.LinkToFile(pFileName)
+	Set tFileStream.LineTerminator = $c(10)
 	While 'tFileStream.AtEnd {
 		Set tFileLines($Increment(tFileLines)) = tFileStream.ReadLine()
 	}
 	
 	For tLineIndex=1:1:$Get(tFileLines) {
 		Set tLine = tFileLines(tLineIndex)
-		Set tLine = $zstrip(tLine, "<>W")
+		Set tLine = $zstrip(tLine, "<>WC")
 		// Skip blank lines
 		If (tLine = "") {
 			Continue
