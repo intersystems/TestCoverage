@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.0.6]
+## [4.0.7] - 2025-09-23
+
+### Fixed
+- #66: No longer errors when a `[ Language = python ]` method has a name starting with "%"
+- coverage.list files with Windows-style line endings are now parsed properly in Linux containers
+
+## [4.0.6] - 2025-08-13
 
 ### Fixed
 - #63: TestCoverage.Manager On/After methods now call superclass so improvements to %UnitTest.Manager like AutoUserNames will work properly

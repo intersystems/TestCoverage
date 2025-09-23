@@ -401,6 +401,10 @@ Method UpdateSourceMap(pSourceNamespace As %String, ByRef pCache) As %Status
 				// for each method in the .py file, we'll find the line number of the corresponding method (guaranteed to be unique) in the .cls file
 				// and then map each line in the .py file to each line in the .cls file by just going 1 by 1 down the lines 
 				Set tCLSMethodNum = pCLSCodeUnit.MethodMap.GetAt(tMethod)
+				If (tCLSMethodNum = "") {
+					// %Foo() becomes _Foo() in the Python code unit.
+					Set tCLSMethodNum = pCLSCodeUnit.MethodMap.GetAt($Replace(tMethod,"_","%"))
+				}
 				Set tMethodStart = ..MethodMap.GetAt(tMethod)
 				Set tMethodEnd = ..MethodEndMap.GetAt(tMethod)
 				Set tMethodName = tMethod
@@ -571,7 +575,12 @@ Method UpdateComplexity() As %Status
 				Quit
 			}
 			If (tSubUnit.IsPythonMethod) {
-				set tSubUnit.Complexity = tMethodComplexities."__getitem__"(tSubUnit.Name)
+				for name = tSubUnit.Name,$Replace(tSubUnit.Name,"%","_") {
+					if tMethodComplexities."__contains__"(name) {
+						set tSubUnit.Complexity = tMethodComplexities."__getitem__"(name)
+						quit
+					}
+				}
 				$$$ThrowOnError(tSubUnit.%Save(0))
 			} Else {
 				$$$ThrowOnError(tSubUnit.UpdateComplexity())

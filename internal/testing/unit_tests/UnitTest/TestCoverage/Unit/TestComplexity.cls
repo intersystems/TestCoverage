@@ -254,4 +254,13 @@ ClassMethod ForLoopPython() [ Language = python ]
 	return 1
 }
 
+/// Complexity: 3 (1 + for + if)
+ClassMethod %ForLoopPython() [ Language = python ]
+{
+	for i in range(5):
+		if i > 4:
+			continue
+	return 1
+}
+
 }
