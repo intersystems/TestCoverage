@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - #66: No longer errors when a `[ Language = python ]` method has a name starting with "%"
-- coverage.list files with Windows-style line endings are now parsed properly in Linux containers
+- coverage.list files with Windows-style line endings are now parsed properly in containers
 
 ## [4.0.6] - 2025-08-13
 
