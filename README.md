@@ -55,7 +55,7 @@ zw ##class(TestCoverage.Utils).GrantSQLReadPermissions("_PUBLIC")
 ## User Guide
 
 ### Running Tests with Coverage
-Generally speaking, set `^UnitTestRoot`, and then call `##class(TestCoverage.Manager).RunTest()` the same you would call `##class(%UnitTest.Manager).RunTest()`. For more information on InterSystems' %UnitTest framework, see the [tutorial](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=TUNT) and/or the [class reference for %UnitTest.Manager](https://docs.intersystems.com/irislatest/csp/documatic/%25CSP.Documatic.cls?PAGE=CLASS&LIBRARY=%25SYS&CLASSNAME=%25UnitTest.Manager).
+Generally speaking, set `^UnitTestRoot`, and then call `##class(TestCoverage.Manager).RunTest()` the same you would call `##class(%UnitTest.Manager).RunTest()`. For more information on InterSystems' %UnitTest framework, see the [framework overview](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=GUNITTEST) and/or the [class reference for %UnitTest.Manager](https://docs.intersystems.com/irislatest/csp/documatic/%25CSP.Documatic.cls?PAGE=CLASS&LIBRARY=%25SYS&CLASSNAME=%25UnitTest.Manager).
 
 The "userparam" argument can be used to pass optional information about code coverage data collection. For example:
 
