@@ -35,6 +35,10 @@ ClassMethod MapRunCoverage(pRunIndex As %Integer) As %Status
 	Try {
 		Set tRun = ##class(TestCoverage.Data.Run).%OpenId(pRunIndex,,.tSC)
 		$$$ThrowOnError(tSC)
+
+		do $SYSTEM.SQL.Stats.Table.GatherSchemaStats("TestCoverage_Data","TuneLog.txt")
+		do $SYSTEM.SQL.Stats.Table.GatherSchemaStats("TestCoverage_Data_Aggregate","TuneLog.txt")
+		do $SYSTEM.SQL.Stats.Table.GatherSchemaStats("TestCoverage_Data_CodeSubUnit","TuneLog.txt")
 		
 		// It would be wonderful if there was support for something along the lines of (with a few made up non-functions):
 		/*
@@ -106,6 +110,8 @@ ClassMethod MapRunCoverage(pRunIndex As %Integer) As %Status
 			Set tCoverage.CoveredLines = $BitLogic(tCoverage.CoveredLines|hCoveredLines)
 			$$$ThrowOnError(tCoverage.%Save())
 		}
+
+		do $SYSTEM.SQL.Stats.Table.GatherTableStats("TestCoverage_Data.Coverage","TuneLog.txt")
 		
 		// Copy any other metrics captured/requested as well.
 		For i=1:1:tRun.Metrics.Count() {
