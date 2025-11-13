@@ -467,8 +467,10 @@ ClassMethod GetCoverageTargetsForFile(pFileName As %String, Output pTargetArray)
 			$$$ThrowOnError(tSC)
 			Set tExtension = "CLS"
 		} ElseIf (tExtension = "CLS") {
-			If (tName = "*") {
-				// TODO: support special case of *.CLS
+			If (tName [ "*") {
+				// *.CLS is "all classes in the current namespace's default routine database"
+				// Will ignore system classes unless run in %SYS namespace or "%" is included in the expression
+				Do ..SearchClasses(tLine,.tNames)
 			} Else {
 				Set tNames(tName) = ""
 			}
@@ -504,6 +506,23 @@ ClassMethod SearchRoutines(pSearchExpr As %String, Output pRoutines) [ Private ]
 			Set pRoutines($Piece(tRoutine,".",1,*-1)) = ""
 		}
 	} While 'tAtEnd
+}
+
+/// Returns the classes in this namespace that satisfy the pSearchExpr
+/// Will not return system classes unless run in %SYS or pSearchExpr contains "%" prefix
+ClassMethod SearchClasses(pSearchExpr As %String, Output pClasses)
+{
+	set statement = "SELECT Name FROM %Library.RoutineMgr_StudioOpenDialog(?,1,1,0,1,0,0)"
+				
+	#dim result As %SQL.StatementResult
+	Set result = ##class(%SQL.Statement).%ExecDirect(,statement, pSearchExpr)
+	If (result.%SQLCODE < 0) {
+		Throw ##class(%Exception.SQL).CreateFromSQLCODE(result.%SQLCODE,result.%Message)
+	}
+	While result.%Next(.tSC) {
+		$$$ThrowOnError(tSC)
+		set pClasses($Piece(result.%Get("Name"),".",1,*-1)) = ""
+	}
 }
 
 Method GetObjectCodeForSourceNames(pSourceNameList As %List) As %List [ Private ]
