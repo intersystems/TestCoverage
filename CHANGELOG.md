@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [4.0.8] - Unreleased
 
+### Added
+- #64: Wildcard support for CLS files in coverage lists
+
 ### Fixed
 - #70: Performance regression on newer IRIS versions when table stats are missing on a clean instance/run
 
