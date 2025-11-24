@@ -164,4 +164,9 @@ ClassMethod PythonWeirdSpacing() [ Language = python ]
 	return [element * 2 for element in x]
 }
 
+Method "__iter__"() [ Language = python ]
+{
+	return self
+}
+
 }

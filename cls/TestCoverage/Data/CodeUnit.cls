@@ -405,6 +405,10 @@ Method UpdateSourceMap(pSourceNamespace As %String, ByRef pCache) As %Status
 					// %Foo() becomes _Foo() in the Python code unit.
 					Set tCLSMethodNum = pCLSCodeUnit.MethodMap.GetAt($Replace(tMethod,"_","%"))
 				}
+				If (tCLSMethodNum = "") {
+					// Special Python methods like __iter__ are stored as "__iter__" (with quotes) in CLS
+					Set tCLSMethodNum = pCLSCodeUnit.MethodMap.GetAt(""""_tMethod_"""")
+				}
 				Set tMethodStart = ..MethodMap.GetAt(tMethod)
 				Set tMethodEnd = ..MethodEndMap.GetAt(tMethod)
 				Set tMethodName = tMethod
