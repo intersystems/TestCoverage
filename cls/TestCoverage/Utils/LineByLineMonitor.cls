@@ -196,6 +196,9 @@ ClassMethod Start(Routine As %List, Metric As %List, Process As %List) As %Statu
 	Set pointer = 0
 	Set found = 0
 	While $ListNext(Routine,pointer,routine) {
+		if $piece(routine, ".", *) = "py" {
+			continue
+		}
 		Set rtnname = routine_".obj"
 		For {
 			Set data = ""
